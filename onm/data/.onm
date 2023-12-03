@@ -1,0 +1,8 @@
+directory: <directory>
+
+# Get your Plaid client ID and secret from here:
+# https://dashboard.plaid.com/developers/keys
+
+plaid_client_id: <plaid_client_id>
+plaid_secret: <plaid_secret>
+plaid_env: sandbox

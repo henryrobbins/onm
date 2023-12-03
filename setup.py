@@ -13,8 +13,15 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/henryrobbins/onm.git",
     packages=setuptools.find_packages(),
+    include_package_data=True,
+    package_data={'onm': ['app/*', 'data/*']},
     license="MIT License",
     classifiers=[],
+    entry_points={
+        'console_scripts': [
+            'onm = onm.main:cli',
+        ],
+    },
     install_requires=[],
     python_requires='>=3.5'
 )
