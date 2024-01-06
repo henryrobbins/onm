@@ -132,7 +132,7 @@ def sync_accounts():
     for account in accounts:
         db.insert({
             "account_id": account["account_id"],
-            "balance": account["balances"]["available"],
+            "balance": account["balances"]["current"] or account["balances"]["available"],
             "official_name": account["official_name"]
         })
 
