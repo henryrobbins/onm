@@ -17,6 +17,10 @@ app.get("/", async (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+app.get("/oauth", async (req, res) => {
+  res.sendFile(path.join(__dirname, "oauth.html"));
+});
+
 // Configuration for the Plaid client
 const config = new Configuration({
   basePath: PlaidEnvironments[process.env.PLAID_ENV],
@@ -36,11 +40,11 @@ const client = new PlaidApi(config);
 app.get("/api/create_link_token", async (req, res, next) => {
   const tokenResponse = await client.linkTokenCreate({
     user: { client_user_id: 'test' },
-    client_name: "Plaid's Tiny Quickstart",
+    client_name: "onm",
     language: "en",
-    products: ["auth"],
+    products: ["transactions"],
     country_codes: ["US"],
-    redirect_uri: process.env.PLAID_SANDBOX_REDIRECT_URI,
+    redirect_uri: "https://localhost:8080/oauth",
   });
   res.json(tokenResponse.data);
 });
