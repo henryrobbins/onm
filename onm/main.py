@@ -52,9 +52,19 @@ def print_table(df, cols=None):
     print(tabulate(rows, headers=cols, tablefmt='orgtbl'))
 
 
+def get_host(config):
+    env = config["plaid_env"]
+    if env == "sandbox":
+        return plaid.Environment.Sandbox
+    elif env == "development":
+        return plaid.Environment.Development
+    elif env == "production":
+        return plaid.Environment.Production
+
+
 def plaid_client(config):
     configuration = plaid.Configuration(
-        host=plaid.Environment.Sandbox,
+        host=get_host(config),
         api_key={
             'clientId': config['plaid_client_id'],
             'secret': config['plaid_secret'],
