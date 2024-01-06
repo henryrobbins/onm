@@ -15,7 +15,7 @@ from plaid.model.accounts_get_request import AccountsGetRequest
 # TODO: Check more than one place for config file
 ONM_CONFIG_PATH = "~/.config/onm/config"
 # DEFAULT_DIRECTORY = "~/onm"
-APP_FILES = ['index.html', 'server.js', 'package.json']
+APP_FILES = ['index.html', 'oauth.html', 'server.js', 'package.json']
 
 
 def read_config():
