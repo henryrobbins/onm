@@ -9,8 +9,8 @@ import tempfile
 import subprocess
 import webbrowser
 import pandas as pd
-import configparser
 from configparser import ConfigParser
+from .config import Config
 from tabulate import tabulate
 from tinydb import TinyDB
 
@@ -127,20 +127,14 @@ def import_mint_data(mint_export_path):
 
     last_updated = df.groupby("account").date.max().to_dict()
 
-    config = ConfigParser()
-    config.read(ONM_INI_PATH)
+    config = Config()
 
     for account_name in last_updated:
-        _init_account(config, account_name, datetime.strftime(last_updated[account_name], r"%Y-%m-%d"), "none")
+        config.add_account(account_name, datetime.strftime(last_updated[account_name], r"%Y-%m-%d"), "none")
 
-    with open(os.path.expanduser(ONM_INI_PATH), 'w+') as f:
-        config.write(f)
+    df.to_csv(config.transactions, index=False)
 
-
-def _init_account(config: ConfigParser, account_name: str, last_updated: str, source: str):
-    config[account_name] = {}
-    config[account_name]["last_updated"] = last_updated
-    config[account_name]["source"] = source
+    config.update()
 
 
 def _editor_account_selection(account_names):
