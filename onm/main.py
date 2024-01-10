@@ -11,6 +11,8 @@ import webbrowser
 import pandas as pd
 from configparser import ConfigParser
 from .config import Config
+from .account import Account
+from .importer import import_transactions_csv
 from tabulate import tabulate
 from tinydb import TinyDB
 
@@ -130,11 +132,39 @@ def import_mint_data(mint_export_path):
     config = Config()
 
     for account_name in last_updated:
-        config.add_account(account_name, datetime.strftime(last_updated[account_name], r"%Y-%m-%d"), "none")
+        account = Account(
+            account_name=account_name,
+            last_updated=last_updated[account_name]
+        )
+        config.update_account(account)
 
     df.to_csv(config.transactions, index=False)
 
     config.update()
+
+
+@cli.command()
+@click.argument("file_path", type=click.Path(exists=True))
+@click.argument("account_name", type=str)
+def import_transactions(file_path, account_name):
+    config = Config()
+    account = config.get_account(account_name)
+
+    df = pd.read_csv(config.transactions)
+    new_df = import_transactions_csv(
+        file_path=file_path,
+        csv_type=account.csv_type,
+        account_name=account_name
+    )
+
+    # update transactions
+    # TODO: only add transactions occurring after last_updated
+    df = pd.concat([df, new_df], ignore_index=True)
+    df.to_csv(config.transactions, index=False)
+
+    # update account
+    account.last_updated = new_df["date"].max()
+    config.update_account(account)
 
 
 def _editor_account_selection(account_names):
