@@ -8,12 +8,13 @@ class Account:
 
     def __init__(self, account_name: str, last_updated: Optional[date] = None,
                  source: Optional[Source] = None, csv_type: Optional[CSV] = None,
-                 access_token: Optional[str] = None):
+                 access_token: Optional[str] = None, account_id: Optional[str] = None):
         self._account_name = account_name
         self._last_updated = last_updated
         self._source = source
         self._csv_type = csv_type
         self._access_token = access_token
+        self._account_id = account_id
 
     @property
     def account_name(self):
@@ -54,3 +55,11 @@ class Account:
     @access_token.setter
     def access_token(self, access_token: Optional[str]):
         self._access_token = access_token
+
+    @property
+    def account_id(self):
+        return self._account_id
+
+    @account_id.setter
+    def account_id(self, account_id: Optional[str]):
+        self._account_id = account_id

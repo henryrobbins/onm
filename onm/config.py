@@ -17,6 +17,7 @@ LAST_UPDATED = "last_updated"
 SOURCE = "source"
 CSV_TYPE = "csv_type"
 ACCESS_TOKEN = "access_token"
+ACCOUNT_ID = "account_id"
 
 PLAID_SECTION = "Plaid"
 PLAID_CLIENT_ID = "client_id"
@@ -52,7 +53,8 @@ class Config:
             last_updated=_deserialize_date(account.get(LAST_UPDATED, "none")),
             source=_deserialize_source(account.get(SOURCE, "none")),
             csv_type=_deserialize_csv_type(account.get(CSV_TYPE, "none")),
-            access_token=account.get(ACCESS_TOKEN, None)
+            access_token=account.get(ACCESS_TOKEN, None),
+            account_id=account.get(ACCOUNT_ID, None)
         )
 
     def update_account(self, account: Account):
@@ -67,6 +69,8 @@ class Config:
             self.config[name][CSV_TYPE] = account.csv_type.value
         if account.access_token is not None:
             self.config[name][ACCESS_TOKEN] = account.access_token
+        if account.account_id is not None:
+            self.config[name][ACCOUNT_ID] = account.account_id
         self.update()
 
     def get_plaid_config(self) -> PlaidConfiguration:

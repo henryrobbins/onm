@@ -76,7 +76,7 @@ class PlaidLinkHTTPServer(BaseHTTPRequestHandler):
             self.send_404()
 
 
-def serve(env: str, clientName: str, token: str, pageTitle: str, accountName: str, type: str) -> Dict:
+def serve(env: str, clientName: str, token: str, pageTitle: str, type: str) -> Dict:
     """
     Starts a webserver and serves the html/link.html file with the
     specified configuration.
@@ -92,7 +92,6 @@ def serve(env: str, clientName: str, token: str, pageTitle: str, accountName: st
         clientName=clientName,
         token=token,
         pageTitle=pageTitle,
-        accountName=accountName,
         type=type
     )
 

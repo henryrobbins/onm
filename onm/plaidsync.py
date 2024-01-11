@@ -17,11 +17,16 @@ from plaid.model.item_get_response import ItemGetResponse
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.transactions_sync_response import TransactionsSyncResponse
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
+from plaid.model.accounts_get_request import AccountsGetRequest
 from plaid.model.accounts_get_response import AccountsGetResponse
 from plaid.model.account_base import AccountBase
 from plaid.model import transaction
+from plaid.model.personal_finance_category import PersonalFinanceCategory
+from .transaction import Transaction, TransactionType
+from .account import Account
+from .importer import Source
 from plaid.model.item import Item
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
 class AccountBalance:
@@ -48,19 +53,19 @@ class AccountInfo:
         self.ts_last_successful_update = data.status.transactions.last_successful_update
 
 
-class Transaction:
-    def __init__(self, data: plaid.model.transaction.Transaction):
-        self.raw_data = serialize_transaction(data)
-        self.account_id     = data.account_id
-        self.date           = data.date
-        self.transaction_id = data.transaction_id
-        self.pending        = data.pending
-        self.merchant_name  = data.merchant_name
-        self.amount         = data.amount
-        self.currency_code  = data.iso_currency_code
+# class Transaction:
+#     def __init__(self, data: plaid.model.transaction.Transaction):
+#         self.raw_data = serialize_transaction(data)
+#         self.account_id     = data.account_id
+#         self.date           = data.date
+#         self.transaction_id = data.transaction_id
+#         self.pending        = data.pending
+#         self.merchant_name  = data.merchant_name
+#         self.amount         = data.amount
+#         self.currency_code  = data.iso_currency_code
 
-    def __str__(self):
-        return "%s %s %s - %4.2f %s" % ( self.date, self.transaction_id, self.merchant_name, self.amount, self.currency_code )
+#     def __str__(self):
+#         return "%s %s %s - %4.2f %s" % ( self.date, self.transaction_id, self.merchant_name, self.amount, self.currency_code )
 
 
 def raise_plaid(ex: plaid.ApiException):
@@ -173,122 +178,63 @@ class PlaidAPI():
         res = self.client.item_public_token_exchange(req)
         return res.access_token
 
-    def get_item_info(self, access_token: str) -> AccountInfo:
+
+    def get_account_balance(self, access_token: str) -> Dict[AccountBalance, float]:
         """
-        Returns account information associated with this particular access token.
+        Returns the balances of all accounts associated with this particular access_token.
         """
-        req = ItemGetRequest(access_token=access_token)
-        ItemGetResponse = self.client.item_get(req)
-        # return AccountInfo(ItemGetResponse)
-        return ItemGetResponse
+        req = AccountsBalanceGetRequest(access_token=access_token)
+        res = self.client.accounts_balance_get(req)
+        plaid_accounts = res.accounts
 
-    # def get_account_balance(self, access_token:str)->List[AccountBalance]:
-    #     """
-    #     Returns the balances of all accounts associated with this particular access_token.
-    #     """
-    #     req = AccountsBalanceGetRequest(access_token=access_token)
-    #     res = self.client.accounts_balance_get(req)
-    #     return list( map( AccountBalance, res.accounts ) )
+        account_balance_dict = {}
+        for plaid_account in plaid_accounts:
+            account = Account(
+                account_name=plaid_account.official_name or plaid_account.name,
+                source=Source.PLAID,
+                access_token=access_token,
+                account_id=plaid_account.account_id
+            )
+            # TODO: Use current for now but should do based on account type
+            balance = plaid_account.balances.current
+            account_balance_dict[account] = balance
 
-    # def get_transactions(self, access_token:str, start_date:datetime.date, end_date:datetime.date, account_ids:Optional[List[str]]=None, status_callback=None):
-    #     transactions = []
-    #     has_more = True
-    #     next_cursor = ""
-    #     while has_more:
-    #         req = TransactionsSyncRequest(
-    #             access_token=access_token,
-    #             cursor=next_cursor
-    #         )
-    #         res = self.client.transactions_sync(req)
-    #         has_more = res.has_more
-    #         next_cursor = res.next_cursor
-    #         added = res.added
-    #         transactions += [Transaction(t) for t in added]
-    #     return transactions
+        return account_balance_dict
 
-
-# def serialize_account_get_response(obj: AccountsGetResponse):
-#     data = {}
-#     print(obj)
-#     data["accounts"] = [serialize_account_base(account) for account in obj.accounts]
-#     data["item"] = serialize_item(obj.item)
-#     data["request_id"] = obj.request_id
-#     data["payment_risk_assessment"] = obj.payment_risk_assessment.__dict__
-#     return data
-
-def serialize_account_base(obj: AccountBase):
-    data = {}
-    data["account_id"] = obj.account_id
-    data["balances"] = obj.balances.to_dict()
-    data["mask"] = obj.mask
-    data["name"] = obj.name
-    data["official_name"] = obj.official_name
-    data["type"] = str(obj.type)
-    data["subtype"] = str(obj.subtype)
-    data["verification_status"] = obj.get("verification_status", None)
-    data["persistent_account_id"] = obj.get("persistent_account_id", None)
-    return data
+    def get_transactions(self, account: Account):
+        transactions = []
+        has_more = True
+        next_cursor = ""
+        while has_more:
+            req = TransactionsSyncRequest(
+                access_token=account.access_token,
+                cursor=next_cursor
+            )
+            res = self.client.transactions_sync(req)
+            has_more = res.has_more
+            next_cursor = res.next_cursor
+            added = res.added
+            filtered = [t for t in added if t.account_id == account.account_id]
+            transactions += [parse_plaid_transaction(account.account_name, t) for t in filtered]
+        return transactions
 
 
-def serialize_item(obj: Item):
-    data = {}
-    data["item_id"] = obj.item_id
-    data["webhook"] = obj.webhook
-    data["available_products"] = [str(p) for p in obj.available_products]
-    data["billed_products"] = [str(p) for p in obj.billed_products]
-    if obj.consent_expiration_time:
-        data["consent_expiration_time"] = obj.consent_expiration_time.isoformat()
-    else:
-        data["consent_expiration_time"] = None
-    data["update_type"] = obj.update_type
-    data["institution_id"] = obj.institution_id
-    data["products"] = [str(p) for p in obj.products]
-    # print(obj.consented_products)
-    # if obj.consented_products:
-    #     data["consented_products"] = [str(p) for p in obj.consented_products]
-    # else:
-    #     data["consented_products"] = []
-    return data
+def parse_plaid_transaction(account_name: str, transaction: transaction.Transaction) -> Transaction:
+    amount = transaction.amount
+    type = TransactionType.DEBIT if amount < 0 else TransactionType.CREDIT
+    amount = abs(amount)
+    return Transaction(
+        date=transaction.date,
+        description=transaction.name,
+        amount=amount,
+        type=type,
+        category=parse_plaid_category(transaction.personal_finance_category),
+        account=account_name
+    )
 
-# def serialize_item_get_response(obj: ItemGetResponse):
-#     data = []
-#     data["item"] = serialize_item(obj.item)
-#     data["request_id"] = obj.request_id
-#     data[""]
 
-#                 'item': (Item,),  # noqa: E501
-#             'request_id': (str,),  # noqa: E501
-#             'status': (ItemStatusNullable,),  # noqa: E501
-
-def serialize_transaction(obj: transaction.Transaction):
-    data = {}
-    data["account_id"] = obj.account_id
-    data["iso_currency_code"] = obj.iso_currency_code
-    data["category"] = obj.category
-    data["category_id"] = obj.category_id
-    data["date"] = obj.date.isoformat()
-    data["name"] = obj.name
-    data["pending"] = obj.pending
-    data["pending_transaction_id"] = obj.pending_transaction_id
-    data["account_owner"] = obj.account_owner
-    data["transaction_id"] = obj.transaction_id
-    data["authorized_date"] = obj.authorized_date.isoformat()
-    if obj.datetime:
-        data["datetime"] = obj.datetime.isoformat()
-    else:
-        data["datetime"] = None
-    data["payment_channel"] = obj.payment_channel
-            # 'transaction_code': (TransactionCode,),  # noqa: E501
-            # 'check_number': (str, none_type,),  # noqa: E501
-            # 'merchant_name': (str, none_type,),  # noqa: E501
-            # 'original_description': (str, none_type,),  # noqa: E501
-            # 'transaction_type': (str,),  # noqa: E501
-            # 'logo_url': (str, none_type,),  # noqa: E501
-            # 'website': (str, none_type,),  # noqa: E501
-            # 'personal_finance_category': (PersonalFinanceCategory,),  # noqa: E501
-            # 'personal_finance_category_icon_url': (str,),  # noqa: E501
-            # 'counterparties': ([TransactionCounterparty],),  # noqa: E501
-            # 'merchant_entity_id': (str, none_type,),  # noqa: E501
+def parse_plaid_category(plaid_category: PersonalFinanceCategory) -> str:
+    return f"{plaid_category.primary}:{plaid_category.detailed}"
 
 
 def get_host(env: str) -> str:

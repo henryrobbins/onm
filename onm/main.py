@@ -9,6 +9,7 @@ import pandas as pd
 from .config import Config
 from .account import Account
 from .importer import Source, import_transactions_csv
+from .transaction import transaction_table
 from .plaidsync import PlaidAPI
 from . import webserver
 from tabulate import tabulate
@@ -180,13 +181,15 @@ def _editor_account_selection(account_names):
         pattern = re.compile(r"^(\d+)\. (.+)$", re.MULTILINE)
         matched = re.findall(pattern, selection)
 
+    print(matched)
+    print(account_names)
+
     return {account_names[int(i) - 1]: rename for i, rename in matched}
 
 
 @cli.command()
-@click.argument("account_name", type=str)
-def link_account(account_name: str):
-    """Link an account via Plaid."""
+def link_item():
+    """Link an item via Plaid."""
     config = Config()
     plaid_config = config.get_plaid_config()
     client = PlaidAPI(plaid_config)
@@ -195,48 +198,42 @@ def link_account(account_name: str):
     plaid_response = webserver.serve(
         env=plaid_config.environment,
         clientName="onm",
-        pageTitle="Update Account Credentials",
-        type="update",
-        accountName=account_name,
-        token=link_token,
+        pageTitle="Link Account Credentials",
+        type="link",
+        token=link_token
     )
 
     public_token = plaid_response['public_token']
     access_token = client.exchange_public_token(public_token)
 
-    account = Account(
-        account_name=account_name,
-        source=Source.PLAID,
-        access_token=access_token
-    )
-    config.update_account(account)
+    account_balances = client.get_account_balance(access_token)
+    account_names = {a.account_name: a for a in account_balances.keys()}
+    selected_accounts = _editor_account_selection(list(account_names.keys()))
+
+    selected_account_balances = {}
+    for current_name, rename in selected_accounts.items():
+        account = account_names[current_name]
+        balance = account_balances[account]
+        account.account_name = rename
+        selected_account_balances[account] = balance
+
+    # TODO: Currently doing nothing with account balances
+    for account in selected_account_balances.keys():
+        config.update_account(account)
 
 
 @cli.command()
-def sync_accounts():
-    """Sync accounts."""
-    # Get all Access Tokens
-    config = read_config()
-    directory = os.path.expanduser(config['directory'])
-    db = TinyDB(os.path.join(directory, "access.json"))
-    access_tokens = [x["access_token"] for x in db.all()]
+@click.argument("account_name", type=str)
+def sync_account(account_name: str):
+    """Sync account"""
+    config = Config()
+    plaid_config = config.get_plaid_config()
+    client = PlaidAPI(plaid_config)
+    account = config.get_account(account_name)
+    transactions = client.get_transactions(account)
+    print(transaction_table(transactions))
+    # TODO Update transactions table appropriately
 
-    # Pull all account data
-    client = plaid_client(config)
-    accounts = []
-    for access_token in access_tokens:
-        request = AccountsGetRequest(access_token=access_token)
-        response = client.accounts_get(request)
-        accounts += response['accounts']
-
-    # Write account data to database
-    db = TinyDB(os.path.join(directory, "accounts.json"))
-    for account in accounts:
-        db.insert({
-            "account_id": account["account_id"],
-            "balance": account["balances"]["current"] or account["balances"]["available"],
-            "official_name": account["official_name"]
-        })
 
 
 @cli.command()
