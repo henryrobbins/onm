@@ -5,6 +5,7 @@ COLUMNS = ["date", "description", "category", "amount", "type", "account"]
 
 
 class Source(Enum):
+    PLAID = "plaid"
     CSV = "csv"
 
 

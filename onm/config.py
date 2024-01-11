@@ -3,6 +3,7 @@ from .importer import Source, CSV
 from .account import Account
 from configparser import ConfigParser
 from datetime import datetime, date
+from .plaidsync import PlaidConfiguration
 import pkg_resources
 from typing import Optional
 
@@ -15,6 +16,12 @@ TRANSACTIONS = "transactions"
 LAST_UPDATED = "last_updated"
 SOURCE = "source"
 CSV_TYPE = "csv_type"
+ACCESS_TOKEN = "access_token"
+
+PLAID_SECTION = "Plaid"
+PLAID_CLIENT_ID = "client_id"
+PLAID_SECRET = "secret"
+PLAID_ENV = "environment"
 
 DATE_FMT = r"%Y-%m-%d"
 
@@ -44,16 +51,32 @@ class Config:
             account_name=account_name,
             last_updated=_deserialize_date(account.get(LAST_UPDATED, "none")),
             source=_deserialize_source(account.get(SOURCE, "none")),
-            csv_type=_deserialize_csv_type(account.get(CSV_TYPE, "none"))
+            csv_type=_deserialize_csv_type(account.get(CSV_TYPE, "none")),
+            access_token=account.get(ACCESS_TOKEN, None)
         )
 
     def update_account(self, account: Account):
         name = account.account_name
         if not self.config.has_section(name):
             self.config[name] = {}
-        self.config[name][LAST_UPDATED] = _serialize_date(account.last_updated)
-        self.config[name][SOURCE] = _serialize_source(account.source)
-        self.config[name][CSV_TYPE] = _serialize_csv_type(account.csv_type)
+        if account.last_updated is not None:
+            self.config[name][LAST_UPDATED] = _serialize_date(account.last_updated)
+        if account.source is not None:
+            self.config[name][SOURCE] = account.source.value
+        if account.csv_type is not None:
+            self.config[name][CSV_TYPE] = account.csv_type.value
+        if account.access_token is not None:
+            self.config[name][ACCESS_TOKEN] = account.access_token
+        self.update()
+
+    def get_plaid_config(self) -> PlaidConfiguration:
+        if not self.config.has_section(PLAID_SECTION):
+            raise ValueError(f"Configuration file is missing [{PLAID_SECTION}] section")
+        return PlaidConfiguration(
+            client_id=self.config[PLAID_SECTION][PLAID_CLIENT_ID],
+            secret=self.config[PLAID_SECTION][PLAID_SECRET],
+            environment=self.config[PLAID_SECTION][PLAID_ENV]
+        )
 
     def update(self):
         with open(self.config_path, "w+") as f:
@@ -61,8 +84,6 @@ class Config:
 
 
 def _serialize_date(date: Optional[date]) -> str:
-    if date is None:
-        return "none"
     return datetime.strftime(date, DATE_FMT)
 
 
@@ -75,12 +96,6 @@ def _deserialize_date(date_str: str) -> Optional[date]:
         raise ValueError(f"'{date_str}' is not in the date format: {DATE_FMT}")
 
 
-def _serialize_source(source: Optional[Source]) -> str:
-    if source is None:
-        return "none"
-    return source.value
-
-
 def _deserialize_source(source_str: str) -> Optional[Source]:
     if source_str == "none":
         return None
@@ -88,12 +103,6 @@ def _deserialize_source(source_str: str) -> Optional[Source]:
         return Source(source_str)
     except KeyError:
         raise ValueError(f"'{source_str}' is not a supported import source")
-
-
-def _serialize_csv_type(csv_type: Optional[CSV]) -> str:
-    if csv_type is None:
-        return "none"
-    return csv_type.value
 
 
 def _deserialize_csv_type(csy_type_str: str) -> Optional[CSV]:

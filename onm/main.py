@@ -1,18 +1,16 @@
 import os
 import re
 import yaml
-import time
-from datetime import datetime
 import click
 import shutil
 import tempfile
 import subprocess
-import webbrowser
 import pandas as pd
-from configparser import ConfigParser
 from .config import Config
 from .account import Account
-from .importer import import_transactions_csv
+from .importer import Source, import_transactions_csv
+from .plaidsync import PlaidAPI
+from . import webserver
 from tabulate import tabulate
 from tinydb import TinyDB
 
@@ -186,24 +184,32 @@ def _editor_account_selection(account_names):
 
 
 @cli.command()
-def link_account():
+@click.argument("account_name", type=str)
+def link_account(account_name: str):
     """Link an account via Plaid."""
-    config = read_config()
-    directory = os.path.expanduser(config['directory'])
-    app_dir = os.path.join(directory, '.onm', 'app')
+    config = Config()
+    plaid_config = config.get_plaid_config()
+    client = PlaidAPI(plaid_config)
+    link_token = client.get_link_token()
 
-    # Get Access Token from Link
-    app = subprocess.Popen("npm start", shell=True, cwd=app_dir,
-                           stdout=subprocess.PIPE)
-    webbrowser.open("http://localhost:8080")
-    access_token = input("Access token: ")
-    app.terminate()
+    plaid_response = webserver.serve(
+        env=plaid_config.environment,
+        clientName="onm",
+        pageTitle="Update Account Credentials",
+        type="update",
+        accountName=account_name,
+        token=link_token,
+    )
 
-    # Save Access Token
-    directory = os.path.expanduser(config['directory'])
-    table_path = os.path.join(directory, "access.json")
-    db = TinyDB(table_path)
-    db.insert({"access_token": access_token})
+    public_token = plaid_response['public_token']
+    access_token = client.exchange_public_token(public_token)
+
+    account = Account(
+        account_name=account_name,
+        source=Source.PLAID,
+        access_token=access_token
+    )
+    config.update_account(account)
 
 
 @cli.command()
