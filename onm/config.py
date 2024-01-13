@@ -3,7 +3,7 @@ from .importer import Source, CSV
 from .account import Account
 from configparser import ConfigParser
 from datetime import datetime, date
-from .plaidsync import PlaidConfiguration
+from .source.plaid_source import PlaidConfiguration
 import pkg_resources
 from typing import Optional
 
@@ -32,8 +32,8 @@ DEFAULT_CONFIG.read(DEFAULT_CONFIG_PATH)
 
 class Config:
 
-    def __init__(self):
-        self.config_path = ONM_CONFIG_PATH
+    def __init__(self, config_path: str = None):
+        self.config_path = config_path or ONM_CONFIG_PATH
         self.config = ConfigParser(comment_prefixes=';', allow_no_value=True)
         self.config.read(self.config_path)
 

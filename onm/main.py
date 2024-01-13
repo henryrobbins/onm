@@ -8,10 +8,9 @@ import subprocess
 import pandas as pd
 from .config import Config
 from .account import Account
-from .importer import Source, import_transactions_csv
+from .importer import import_transactions_csv
 from .transaction import transaction_table
-from .plaidsync import PlaidAPI
-from . import webserver
+from .source.plaid_source import PlaidLink, PlaidSource, get_plaid_api
 from tabulate import tabulate
 from tinydb import TinyDB
 
@@ -188,25 +187,17 @@ def _editor_account_selection(account_names):
 
 
 @cli.command()
-def link_item():
+@click.option('-c', '--config', help='Configuration file')
+def link_item(config):
     """Link an item via Plaid."""
-    config = Config()
-    plaid_config = config.get_plaid_config()
-    client = PlaidAPI(plaid_config)
-    link_token = client.get_link_token()
+    config = Config(config)
+    plaid_configuration = config.get_plaid_config()
+    plaid_api = get_plaid_api(plaid_configuration)
+    plaid_link = PlaidLink(plaid_api)
+    access_token = plaid_link.get_access_token()
+    plaid_source = PlaidSource(plaid_api)
+    account_balances = plaid_source.get_account_balances(access_token)
 
-    plaid_response = webserver.serve(
-        env=plaid_config.environment,
-        clientName="onm",
-        pageTitle="Link Account Credentials",
-        type="link",
-        token=link_token
-    )
-
-    public_token = plaid_response['public_token']
-    access_token = client.exchange_public_token(public_token)
-
-    account_balances = client.get_account_balance(access_token)
     account_names = {a.account_name: a for a in account_balances.keys()}
     selected_accounts = _editor_account_selection(list(account_names.keys()))
 

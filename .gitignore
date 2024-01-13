@@ -3,6 +3,9 @@
 
 ### Python ###
 
+test-config.ini
+test-transactions
+
 dev.ipynb
 test.py
 time_test.py
