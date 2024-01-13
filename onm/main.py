@@ -10,7 +10,7 @@ from .config import Config
 from .account import Account
 from .importer import import_transactions_csv
 from .transaction import transaction_table
-from .source.plaid_source import PlaidLink, PlaidSource, get_plaid_api
+from .source.plaid_connection import PlaidLink, PlaidSource, get_plaid_api
 from tabulate import tabulate
 from tinydb import TinyDB
 

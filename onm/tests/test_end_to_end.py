@@ -3,8 +3,8 @@ from plaid.api.plaid_api import PlaidApi
 from plaid.model.products import Products
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
-from onm.source.plaid_source import PlaidConfiguration, PlaidLink, PlaidSource, get_plaid_api
-
+from onm.connection.plaid_connection import PlaidConnection, PlaidConfiguration, PlaidLink, get_plaid_api
+from onm.source.plaid_source import PlaidSourceFactory
 
 pytestmark = pytest.mark.integration
 
@@ -50,7 +50,14 @@ def test_end_to_end(plaid_configuration):
     plaid_api = get_plaid_api(plaid_configuration)
     plaid_link = PlaidLinkMock(plaid_api)
     access_token = plaid_link.get_access_token()
-    plaid_source = PlaidSource(plaid_api)
-    account_balances = plaid_source.get_account_balances(access_token)
+    plaid_connection = PlaidConnection(plaid_api)
+    plaid_source = PlaidSourceFactory.create_source(
+        name="test",
+        access_token=access_token,
+        plaid_connection=plaid_connection
+    )
+    account_balances = plaid_source.get_account_balances(plaid_connection)
+    print(account_balances)
+    transactions = plaid_source.get_new_transactions(plaid_connection)
+    print(transactions)
     # TODO: Add assertions
-

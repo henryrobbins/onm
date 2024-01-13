@@ -3,7 +3,7 @@ from .importer import Source, CSV
 from .account import Account
 from configparser import ConfigParser
 from datetime import datetime, date
-from .source.plaid_source import PlaidConfiguration
+from .connection.plaid_connection import PlaidConfiguration
 import pkg_resources
 from typing import Optional
 

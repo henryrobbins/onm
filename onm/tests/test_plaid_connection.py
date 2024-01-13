@@ -1,11 +1,18 @@
 import pytest
 from mock import patch
 from unittest.mock import Mock
+from datetime import datetime
 from plaid import Environment
 from plaid.api.plaid_api import PlaidApi
+from plaid.model.account_base import AccountBase
+from plaid.model.account_balance import AccountBalance
+from plaid.model.transaction import Transaction
+from plaid.model.personal_finance_category import PersonalFinanceCategory
 from plaid.model.link_token_create_response import LinkTokenCreateResponse
+from plaid.model.transactions_sync_response import TransactionsSyncResponse
 from plaid.model.item_public_token_exchange_response import ItemPublicTokenExchangeResponse
-from onm.source.plaid_source import PlaidConfiguration, PlaidLink, get_plaid_api
+from plaid.model.accounts_get_response import AccountsGetResponse
+from onm.connection.plaid_connection import TransactionType, PlaidConnection, PlaidConfiguration, PlaidLink, get_plaid_api
 
 pytestmark = pytest.mark.unit
 
@@ -101,5 +108,83 @@ def test_plaid_link_update_link(webserver_serve_mock):
     )
 
 
-# TODO: test_plaid_source_get_account_balances
-# TODO: get_new_transactions
+@pytest.fixture
+def plaid_api_mock():
+    plaid_api = Mock(PlaidApi)
+
+    balance = Mock(AccountBalance)
+    balance.configure_mock(current=131.17)
+    account = Mock(AccountBase)
+    account.configure_mock(
+        official_name="ONM Bank",
+        name="onm",
+        account_id="bc3eb2e652219571d5897b8422869388",
+        balances=balance
+    )
+    accounts = [account]
+    accounts_get_res = Mock(AccountsGetResponse)
+    accounts_get_res.configure_mock(accounts=accounts)
+
+    def accounts_balance_get_side_effect(*args):
+        req = args[0]
+        if req.access_token == ACCESS_TOKEN:
+            return accounts_get_res
+        return None
+
+    plaid_api.accounts_balance_get.side_effect = accounts_balance_get_side_effect
+
+    personal_finance_category = Mock(PersonalFinanceCategory)
+    personal_finance_category.configure_mock(
+        primary="ENTERTAINMENT",
+        detailed="MUSIC"
+    )
+
+    transaction = Mock(Transaction)
+    transaction.configure_mock(
+        date= datetime(2024, 1, 13).date(),
+        name="TOMI JAZZ",
+        amount=-78.9,
+        personal_finance_category=personal_finance_category,
+        account_id="bc3eb2e652219571d5897b8422869388"
+    )
+
+    transactions = [transaction]
+    transactions_sync_res = Mock(TransactionsSyncResponse)
+    transactions_sync_res.configure_mock(
+        has_more=False,
+        next_cursor="",
+        added=transactions
+    )
+
+    def transactions_sync_side_effect(*args):
+        req = args[0]
+        if req.access_token == ACCESS_TOKEN:
+            return transactions_sync_res
+        return None
+
+    plaid_api.transactions_sync.side_effect = transactions_sync_side_effect
+
+    return plaid_api
+
+
+def test_plaid_connection_get_account_balances(plaid_api_mock):
+    plaid_connection = PlaidConnection(plaid_api_mock)
+    account_balances = plaid_connection.get_account_balances(ACCESS_TOKEN)
+    assert 1 == len(account_balances)
+    account = account_balances[0]
+    assert "ONM Bank" == account.account_name
+    assert "bc3eb2e652219571d5897b8422869388" == account.account_id
+    assert 131.17 == account.balance
+
+
+def test_plaid_connection_get_new_transactions(plaid_api_mock):
+    plaid_connection = PlaidConnection(plaid_api_mock)
+    transactions = plaid_connection.get_new_transactions(ACCESS_TOKEN)
+    assert 1 == len(transactions)
+    transaction = transactions[0]
+    assert datetime(2024, 1, 13).date() == transaction.date
+    assert "TOMI JAZZ" == transaction.description
+    assert 78.9 == transaction.amount
+    assert TransactionType.DEBIT == transaction.type
+    assert "ENTERTAINMENT:MUSIC" == transaction.category
+    assert "bc3eb2e652219571d5897b8422869388" == transaction.account_id
