@@ -9,9 +9,9 @@ from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchan
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from .. import webserver
-from .connection import (Connection, AccountBalance, AccountBalancesResponse,
-                         TransactionType, Transaction, NewTransactionsResponse)
-from typing import NamedTuple
+from .connection import (Connection, AccountBalance,
+                         TransactionType, Transaction)
+from typing import List, NamedTuple
 
 
 class PlaidConfiguration(NamedTuple):
@@ -100,7 +100,7 @@ class PlaidConnection(Connection):
     def __init__(self, plaid_api: PlaidApi):
         self._plaid_api = plaid_api
 
-    def get_account_balances(self, access_token: str) -> AccountBalancesResponse:
+    def get_account_balances(self, access_token: str) -> List[AccountBalance]:
         req = AccountsBalanceGetRequest(access_token=access_token)
         res = self._plaid_api.accounts_balance_get(req)
         plaid_accounts = res.accounts
@@ -114,7 +114,7 @@ class PlaidConnection(Connection):
             ))
         return accounts
 
-    def get_new_transactions(self, access_token: str) -> NewTransactionsResponse:
+    def get_new_transactions(self, access_token: str) -> List[Transaction]:
         transactions = []
         has_more = True
         next_cursor = ""

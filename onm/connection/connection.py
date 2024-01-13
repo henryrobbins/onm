@@ -10,10 +10,6 @@ class AccountBalance(NamedTuple):
     balance: float
 
 
-class AccountBalancesResponse(NamedTuple):
-    accounts: List[AccountBalance]
-
-
 class TransactionType(Enum):
     CREDIT= "credit"
     DEBIT= "debit"
@@ -28,17 +24,13 @@ class Transaction(NamedTuple):
     type: TransactionType
 
 
-class NewTransactionsResponse(NamedTuple):
-    transactions: List[Transaction]
-
-
 class Connection(ABC):
 
     @abstractmethod
-    def get_account_balances(self) -> AccountBalancesResponse:
+    def get_account_balances(self) -> List[AccountBalance]:
         pass
 
     @abstractmethod
-    def get_new_transactions(self) -> NewTransactionsResponse:
+    def get_new_transactions(self) -> List[Transaction]:
         pass
 
