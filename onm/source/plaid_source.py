@@ -13,6 +13,14 @@ class PlaidSource(Source):
         self._access_token = access_token
         self._account_id_map = account_id_map
 
+    @property
+    def access_token(self) -> str:
+        return self._access_token
+
+    @property
+    def account_id_map(self) -> str:
+        return self._account_id_map
+
     def get_account_balances(self, plaid_connection: PlaidConnection) -> Dict[str, float]:
         balances = plaid_connection.get_account_balances(self._access_token)
         return {self._account_id_map[b.account_id]: b.balance for b in balances}
