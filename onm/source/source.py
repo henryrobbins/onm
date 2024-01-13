@@ -1,22 +1,6 @@
-from datetime import date
-from enum import Enum
 from abc import ABC, abstractmethod
-from typing import List, Dict, NamedTuple
-
-
-class TransactionType(Enum):
-    CREDIT= "credit"
-    DEBIT= "debit"
-
-
-class Transaction(NamedTuple):
-    date: date
-    description: str
-    amount: float
-    category: str
-    account_name: str
-    type: TransactionType
-
+from typing import List, Dict
+from ..common import Transaction
 
 class Source(ABC):
 

@@ -1,4 +1,4 @@
-from onm.source.source import Transaction, TransactionType
+from onm.common import Transaction, TransactionType
 from ..connection import connection
 from ..connection.plaid_connection import PlaidConnection
 from .source import Source, SourceFactory

@@ -5,7 +5,7 @@ from datetime import datetime
 from onm.connection.plaid_connection import PlaidConnection
 from onm.connection import connection
 from onm.connection.connection import AccountBalance, Transaction
-from onm.source.source import TransactionType
+from onm.common import TransactionType
 from onm.source.plaid_source import PlaidSourceFactory
 
 pytestmark = pytest.mark.unit
