@@ -33,12 +33,6 @@ def plaid_configuration():
     )
 
 
-def test_plaid_configuration(plaid_configuration):
-    assert TEST_CLIENT_ID == plaid_configuration.client_id
-    assert TEST_SECRET == plaid_configuration.secret
-    assert TEST_ENVIRONMENT == plaid_configuration.environment
-
-
 def test_get_plaid_api(plaid_configuration):
     plaid_api = get_plaid_api(plaid_configuration)
     assert PlaidApi == type(plaid_api)

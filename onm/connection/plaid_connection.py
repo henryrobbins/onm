@@ -11,38 +11,13 @@ from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from .. import webserver
 from .connection import (Connection, AccountBalance, AccountBalancesResponse,
                          TransactionType, Transaction, NewTransactionsResponse)
+from typing import NamedTuple
 
 
-class PlaidConfiguration():
-
-    def __init__(self, client_id: str, secret: str, environment: str):
-        self._client_id = client_id
-        self._secret = secret
-        self._environment = environment
-
-    @property
-    def client_id(self) -> str:
-        return self._client_id
-
-    @client_id.setter
-    def client_id(self, client_id: str):
-        self._client_id = client_id
-
-    @property
-    def secret(self) -> str:
-        return self._secret
-
-    @secret.setter
-    def secret(self, secret: str):
-        self._secret = secret
-
-    @property
-    def environment(self) -> str:
-        return self._environment
-
-    @environment.setter
-    def environment(self, environment: str):
-        self._environment = environment
+class PlaidConfiguration(NamedTuple):
+    client_id: str
+    secret: str
+    environment: str
 
 
 def _get_host(env: str) -> str:
