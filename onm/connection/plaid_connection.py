@@ -10,8 +10,9 @@ from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from .. import webserver
 from .connection import (Connection, AccountBalance,
-                         TransactionType, Transaction)
-from typing import List, NamedTuple
+                         TransactionType, Transaction, SyncTransactionsResponse)
+from ..sync import PlaidSyncCursor
+from typing import List, NamedTuple, Optional
 
 
 class PlaidConfiguration(NamedTuple):
@@ -100,7 +101,7 @@ class PlaidConnection(Connection):
     def __init__(self, plaid_api: PlaidApi):
         self._plaid_api = plaid_api
 
-    def get_account_balances(self, access_token: str) -> List[AccountBalance]:
+    def get_account_balances(self, access_token: Optional[str]) -> List[AccountBalance]:
         req = AccountsBalanceGetRequest(access_token=access_token)
         res = self._plaid_api.accounts_balance_get(req)
         plaid_accounts = res.accounts
@@ -114,10 +115,13 @@ class PlaidConnection(Connection):
             ))
         return accounts
 
-    def get_new_transactions(self, access_token: str) -> List[Transaction]:
+    def sync_transactions(self, sync_cursor: Optional[PlaidSyncCursor] = None,
+                          access_token: Optional[str] = None) -> SyncTransactionsResponse:
         transactions = []
         has_more = True
         next_cursor = ""
+        if sync_cursor is not None and sync_cursor.cursor is not None:
+            next_cursor = sync_cursor.cursor
         while has_more:
             req = TransactionsSyncRequest(
                 access_token=access_token,
@@ -127,7 +131,10 @@ class PlaidConnection(Connection):
             has_more = res.has_more
             next_cursor = res.next_cursor
             transactions += [_parse_plaid_transaction(t) for t in res.added]
-        return transactions
+        return SyncTransactionsResponse(
+            transactions=transactions,
+            sync_cursor=PlaidSyncCursor(cursor=next_cursor)
+        )
 
 
 def _parse_plaid_transaction(transaction: transaction.Transaction) -> Transaction:

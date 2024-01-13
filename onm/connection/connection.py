@@ -1,8 +1,8 @@
 from datetime import date
 from enum import Enum
 from abc import ABC, abstractmethod
-from typing import List, NamedTuple
-
+from typing import List, NamedTuple, Optional
+from ..sync import SyncCursor
 
 class AccountBalance(NamedTuple):
     account_name: str
@@ -24,13 +24,19 @@ class Transaction(NamedTuple):
     type: TransactionType
 
 
+class SyncTransactionsResponse(NamedTuple):
+    transactions: List[Transaction]
+    sync_cursor: SyncCursor
+
+
 class Connection(ABC):
 
     @abstractmethod
-    def get_account_balances(self) -> List[AccountBalance]:
+    def get_account_balances(self, access_token: Optional[str]) -> List[AccountBalance]:
         pass
 
     @abstractmethod
-    def get_new_transactions(self) -> List[Transaction]:
+    def sync_transactions(self, sync_cursor: Optional[SyncCursor],
+                          access_token: Optional[str]) -> SyncTransactionsResponse:
         pass
 

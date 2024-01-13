@@ -7,6 +7,8 @@ from onm.connection import connection
 from onm.connection.connection import AccountBalance, Transaction
 from onm.common import TransactionType
 from onm.source.plaid_source import PlaidSourceFactory
+from onm.source.source import SyncTransactionsResponse
+from onm.sync import PlaidSyncCursor
 
 pytestmark = pytest.mark.unit
 
@@ -41,13 +43,16 @@ def plaid_connection_mock():
         type=connection.TransactionType.DEBIT
     )
 
-    def get_new_transactions_side_effect(*args):
-        if args[0] == ACCESS_TOKEN:
-            return [transaction]
+    def sync_transactions_side_effect(*args, **kwargs):
+        if kwargs["access_token"] == ACCESS_TOKEN:
+            return SyncTransactionsResponse(
+                transactions=[transaction],
+                sync_cursor=PlaidSyncCursor(cursor="fd463d42b92c62fc5aa8f73db68c7e2d")
+            )
         return None
 
-    plaid_connection.get_new_transactions.side_effect = \
-        get_new_transactions_side_effect
+    plaid_connection.sync_transactions.side_effect = \
+        sync_transactions_side_effect
 
     return plaid_connection
 
@@ -63,9 +68,14 @@ def test_plaid_source(plaid_connection_mock):
     assert 1 == len(account_balances)
     assert 0.0 == account_balances["ONM CHECKING"]
 
-    transactions = plaid_source.get_new_transactions(plaid_connection_mock)
-    assert 1 == len(transactions)
-    transaction = transactions[0]
+    sync_cursor = PlaidSyncCursor(cursor="c4498331dfe9edf14bf28e5ab6f51e58")
+    res = plaid_source.sync_transactions(
+            connection=plaid_connection_mock,
+            sync_cursor=sync_cursor
+        )
+    assert "fd463d42b92c62fc5aa8f73db68c7e2d" == res.sync_cursor.cursor
+    assert 1 == len(res.transactions)
+    transaction = res.transactions[0]
     assert datetime(2024, 1, 13).date() == transaction.date
     assert "TOMI JAZZ" == transaction.description
     assert 89.3 == transaction.amount

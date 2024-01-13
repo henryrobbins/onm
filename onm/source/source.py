@@ -1,6 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, NamedTuple, Optional
 from ..common import Transaction
+from ..sync import SyncCursor
+from ..connection.connection import Connection
+
+
+class SyncTransactionsResponse(NamedTuple):
+    transactions: List[Transaction]
+    sync_cursor: SyncCursor
+
 
 class Source(ABC):
 
@@ -12,11 +20,11 @@ class Source(ABC):
         return self._name
 
     @abstractmethod
-    def get_account_balances(self) -> Dict[str, float]:
+    def get_account_balances(self, connection: Connection) -> Dict[str, float]:
         pass
 
     @abstractmethod
-    def get_new_transactions(self) -> List[Transaction]:
+    def sync_transactions(self, connection: Connection, sync_cursor: Optional[SyncCursor]) -> SyncTransactionsResponse:
         pass
 
 

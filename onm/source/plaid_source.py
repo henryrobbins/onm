@@ -1,7 +1,8 @@
 from onm.common import Transaction, TransactionType
 from ..connection import connection
 from ..connection.plaid_connection import PlaidConnection
-from .source import Source, SourceFactory
+from ..sync import PlaidSyncCursor
+from .source import Source, SourceFactory, SyncTransactionsResponse
 from typing import List, Dict
 
 
@@ -21,13 +22,21 @@ class PlaidSource(Source):
     def account_id_map(self) -> str:
         return self._account_id_map
 
-    def get_account_balances(self, plaid_connection: PlaidConnection) -> Dict[str, float]:
-        balances = plaid_connection.get_account_balances(self._access_token)
+    def get_account_balances(self, connection: PlaidConnection) -> Dict[str, float]:
+        balances = connection.get_account_balances(self._access_token)
         return {self._account_id_map[b.account_id]: b.balance for b in balances}
 
-    def get_new_transactions(self, plaid_connection: PlaidConnection) -> List[Transaction]:
-        transactions = plaid_connection.get_new_transactions(self._access_token)
-        return [self._transaction_from(t) for t in transactions]
+    def sync_transactions(self, connection: PlaidConnection,
+                          sync_cursor: PlaidSyncCursor = None) -> SyncTransactionsResponse:
+        sync_response = connection.sync_transactions(
+            sync_cursor=sync_cursor,
+            access_token=self._access_token
+        )
+        transactions = [self._transaction_from(t) for t in sync_response.transactions]
+        return SyncTransactionsResponse(
+            transactions=transactions,
+            sync_cursor=sync_response.sync_cursor
+        )
 
     def _transaction_from(self, t: connection.Transaction) -> Transaction:
         return Transaction(

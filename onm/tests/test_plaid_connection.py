@@ -13,6 +13,7 @@ from plaid.model.transactions_sync_response import TransactionsSyncResponse
 from plaid.model.item_public_token_exchange_response import ItemPublicTokenExchangeResponse
 from plaid.model.accounts_get_response import AccountsGetResponse
 from onm.connection.plaid_connection import TransactionType, PlaidConnection, PlaidConfiguration, PlaidLink, get_plaid_api
+from onm.sync import PlaidSyncCursor
 
 pytestmark = pytest.mark.unit
 
@@ -173,7 +174,13 @@ def test_plaid_connection_get_account_balances(plaid_api_mock):
 
 def test_plaid_connection_get_new_transactions(plaid_api_mock):
     plaid_connection = PlaidConnection(plaid_api_mock)
-    transactions = plaid_connection.get_new_transactions(ACCESS_TOKEN)
+    sync_cursor = PlaidSyncCursor(cursor="c4498331dfe9edf14bf28e5ab6f51e58")
+    res = plaid_connection.sync_transactions(
+        sync_cursor=sync_cursor,
+        access_token=ACCESS_TOKEN
+    )
+    new_sync_cursor = res.sync_cursor
+    transactions = res.transactions
     assert 1 == len(transactions)
     transaction = transactions[0]
     assert datetime(2024, 1, 13).date() == transaction.date
