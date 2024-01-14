@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest.mock import Mock
 from plaid.api.plaid_api import PlaidApi
@@ -9,8 +10,13 @@ from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import PlaidConnection, PlaidConfiguration, get_plaid_api
 from onm.source.source_factory import SourceFactory
 from onm.common import SourceType
+from onm.config import Config
 
 pytestmark = pytest.mark.integration
+
+RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
+CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.ini")
+# DATABASE_PATH = os.path.join(RESOURCES_PATH, "csv_database")
 
 
 class PlaidLinkMock(PlaidLink):
@@ -51,23 +57,45 @@ def plaid_configuration(client_id, secret):
 
 
 def test_end_to_end(plaid_configuration):
+
+    config = Config(CONFIG_PATH)
+
+    # Create new source
     plaid_api = get_plaid_api(plaid_configuration)
     link_factory_mock = Mock(LinkFactory)
     link_factory_mock.create_link.return_value = PlaidLinkMock(plaid_api)
-
     plaid_source = SourceFactory.create_source(
         type= SourceType.PLAID,
         name= "test",
         link_factory=link_factory_mock,
         plaid_api=plaid_api
     )
-
-    # plaid_connection = PlaidConnection(plaid_api)
-    # account_balances = plaid_source.get_account_balances(plaid_connection)
-    # print(account_balances)
-    # transactions = plaid_source.sync_transactions(plaid_connection)
-    # print(transactions)
-
     plaid_source.update_link(link_factory_mock)
 
-    # TODO: Add assertions
+    # Add to sources
+    sources = config.get_sources()
+    sources.add_source(plaid_source)
+
+    # Get source
+    source = sources.get_source("test")
+    plaid_connection = PlaidConnection(plaid_api)
+    account_balances = source.get_account_balances(plaid_connection)
+    sync_transactions_res = source.sync_transactions(plaid_connection)
+
+    # Write to fake database
+    database = config.get_database()
+    transactions = sync_transactions_res.transactions
+    sync_cursor = sync_transactions_res.sync_cursor
+    database.add_transactions(transactions)
+    database.set_sync_cursor(source, sync_cursor)
+
+    from_db_transactions = database.get_transactions()
+    assert len(transactions) == len(from_db_transactions)
+
+    # Fetch again (assume nothing changed)
+    sync_transactions_res = source.sync_transactions(plaid_connection, sync_cursor)
+    transactions = sync_transactions_res.transactions
+    sync_cursor = sync_transactions_res.sync_cursor
+    assert 0 == len(transactions)
+
+    # TODO: Add more assertions

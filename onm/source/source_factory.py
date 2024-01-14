@@ -9,6 +9,7 @@ from typing import Type, Optional
 
 class SourceFactory():
 
+    @staticmethod
     def create_source(type: SourceType, name: str,
                       link_factory: Type[LinkFactory] = LinkFactory,
                       connection_factory: Type[ConnectionFactory] = ConnectionFactory,

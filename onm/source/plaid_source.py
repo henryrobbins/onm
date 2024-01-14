@@ -26,7 +26,8 @@ class PlaidSource(Source):
 
     def get_account_balances(self, connection: PlaidConnection) -> Dict[str, float]:
         balances = connection.get_account_balances(self._access_token)
-        return {self._account_id_map[b.account_id]: b.balance for b in balances}
+        # TODO: find better solution
+        return {self._account_id_map[b.account_id.lower()]: b.balance for b in balances}
 
     def sync_transactions(self, connection: PlaidConnection,
                           sync_cursor: PlaidSyncCursor = None) -> SyncTransactionsResponse:
@@ -45,7 +46,7 @@ class PlaidSource(Source):
             date=t.date,
             description=t.description,
             amount=t.amount,
-            account_name=self._account_id_map[t.account_id],
+            account_name=self._account_id_map[t.account_id.lower()],  # TODO: find better solution
             category=t.category,
             type=TransactionType(t.type.value)
         )

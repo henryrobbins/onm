@@ -22,6 +22,10 @@ class Sources:
 
     def __init__(self, sources_path: str = None):
         self.config_path = sources_path or ONM_SOURCES_PATH
+        if not os.path.exists(self.config_path):
+            os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+            with open(self.config_path, 'w') as file:
+                pass
         self.config = ConfigParser(comment_prefixes=';', allow_no_value=True)
         self.config.read(self.config_path)
 
@@ -38,7 +42,8 @@ class Sources:
         config_source[SOURCE_TYPE] = SourceType.PLAID.value
         config_source[ACCESS_TOKEN] = source.access_token
         for account_id, account_name in source.account_id_map.items():
-            config_source[account_id] = account_name
+            # TODO: find better long-term solution
+            config_source[account_id] = account_name.replace("%", "")
 
     def get_source(self, name: str) -> Source:
         if not self.config.has_section(name):
