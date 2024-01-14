@@ -4,6 +4,8 @@ import pytest
 from datetime import datetime
 from onm.common import Account, Transaction, TransactionType
 from onm.database.csv_database import CsvDatabase
+from onm.sync import PlaidSyncCursor
+from onm.source.plaid_source import PlaidSource
 
 pytestmark = pytest.mark.unit
 
@@ -14,6 +16,10 @@ NEW_ACCOUNTS_PATH = os.path.join(RESOURCES_PATH, "new_accounts.csv")
 TRANSACTIONS_PATH = os.path.join(RESOURCES_PATH, "transactions.csv")
 TEST_TRANSACTIONS_PATH = os.path.join(RESOURCES_PATH, "test_transactions.csv")
 NEW_TRANSACTIONS_PATH = os.path.join(RESOURCES_PATH, "new_transactions.csv")
+CURSORS_PATH = os.path.join(RESOURCES_PATH, "cursors.csv")
+TEST_CURSORS_PATH = os.path.join(RESOURCES_PATH, "test_cursors.csv")
+NEW_CURSORS_PATH = os.path.join(RESOURCES_PATH, "new_cursors.csv")
+
 
 ONM_CHECKING = "onm_bank_checking"
 ONM_SAVINGS = "onm_bank_savings"
@@ -22,20 +28,25 @@ ONM_SAVINGS = "onm_bank_savings"
 def existing_database():
     shutil.copyfile(ACCOUNTS_PATH, TEST_ACCOUNTS_PATH)
     shutil.copyfile(TRANSACTIONS_PATH, TEST_TRANSACTIONS_PATH)
-    yield CsvDatabase(TEST_ACCOUNTS_PATH, TEST_TRANSACTIONS_PATH)
+    shutil.copyfile(CURSORS_PATH, TEST_CURSORS_PATH)
+    yield CsvDatabase(TEST_ACCOUNTS_PATH, TEST_TRANSACTIONS_PATH, TEST_CURSORS_PATH)
     if os.path.exists(TEST_ACCOUNTS_PATH):
         os.remove(TEST_ACCOUNTS_PATH)
     if os.path.exists(TEST_TRANSACTIONS_PATH):
         os.remove(TEST_TRANSACTIONS_PATH)
+    if os.path.exists(TEST_CURSORS_PATH):
+        os.remove(TEST_CURSORS_PATH)
 
 
 @pytest.fixture
 def new_database():
-    yield CsvDatabase(NEW_ACCOUNTS_PATH, NEW_TRANSACTIONS_PATH)
+    yield CsvDatabase(NEW_ACCOUNTS_PATH, NEW_TRANSACTIONS_PATH, NEW_CURSORS_PATH)
     if os.path.exists(NEW_ACCOUNTS_PATH):
         os.remove(NEW_ACCOUNTS_PATH)
     if os.path.exists(NEW_TRANSACTIONS_PATH):
         os.remove(NEW_TRANSACTIONS_PATH)
+    if os.path.exists(NEW_CURSORS_PATH):
+        os.remove(NEW_CURSORS_PATH)
 
 
 def test_add_account(new_database):
@@ -75,7 +86,15 @@ def test_add_transactions(new_database):
         type=TransactionType.DEBIT
     )
     new_database.add_transactions([transaction])
-    new_database.get_transactions()
+    transactions = new_database.get_transactions()
+    assert 1 == len(transactions)
+    transaction = transactions[0]
+    assert datetime(2024,3,12).date() == transaction.date
+    assert "TOMI JAZZ" == transaction.description
+    assert 35.8 == transaction.amount
+    assert "MUSIC" == transaction.category
+    assert "onm_bank" == transaction.account_name
+    assert TransactionType.DEBIT == transaction.type
 
 
 def test_get_transactions(existing_database):
@@ -88,3 +107,21 @@ def test_get_transactions(existing_database):
     assert "MUSIC" == transaction.category
     assert "onm_savings" == transaction.account_name
     assert TransactionType.DEBIT == transaction.type
+
+
+def test_set_sync_cursor(new_database):
+    source = PlaidSource("test_source")
+    expected_sync_cursor = PlaidSyncCursor("805c4d192e0d4bbe742bda1f21fc5bbc")
+    new_database.set_sync_cursor(source, expected_sync_cursor)
+    sync_cursor = new_database.get_sync_cursor(source)
+    assert expected_sync_cursor.cursor == sync_cursor.cursor
+
+
+def test_get_sync_cursor(existing_database):
+    source = PlaidSource("onm_bank")
+    sync_cursor = existing_database.get_sync_cursor(source)
+    assert "75626d959a12ead47337eca9d9c6eaec" == sync_cursor.cursor
+
+    new_source = PlaidSource("bank")
+    sync_cursor = existing_database.get_sync_cursor(new_source)
+    assert sync_cursor is None

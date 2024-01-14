@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from ..common import Account, Transaction
-from typing import List
+from ..sync import SyncCursor
+from ..source.source import Source
+from typing import List, Optional
 
 
 class Database(ABC):
@@ -27,4 +29,12 @@ class Database(ABC):
 
     @abstractmethod
     def get_transactions(self) -> List[Transaction]:
+        pass
+
+    @abstractmethod
+    def set_sync_cursor(self, source: Source, sync_cursor: SyncCursor):
+        pass
+
+    @abstractmethod
+    def get_sync_cursor(self, source: Source) -> Optional[SyncCursor]:
         pass

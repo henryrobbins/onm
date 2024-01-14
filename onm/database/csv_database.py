@@ -1,6 +1,9 @@
 import os
+import json
 import pandas as pd
 from datetime import datetime
+from onm.source.source import Source
+from onm.sync import SyncCursor, SyncCursorType, create_sync_cursor, get_sync_cursor_type_from
 from .database import Database
 from ..common import Account, TransactionType, Transaction
 from typing import List, Dict
@@ -8,12 +11,16 @@ from typing import List, Dict
 ACCOUNT_DF_COLUMNS = ["name", "balance"]
 TRANSACTIONS_DF_COLUMNS = \
     ["date", "description", "amount", "category", "account_name", "type"]
+CURSOR_TYPE = "type"
+CURSOR_DATA = "data"
+CURSORS_DF_COLUMNS = [CURSOR_TYPE, CURSOR_DATA]
 
 DATE_FMT = r"%Y-%m-%d"
 
+
 class CsvDatabase(Database):
 
-    def __init__(self, accounts_path: str, transactions_path: str):
+    def __init__(self, accounts_path: str, transactions_path: str, cursors_path: str):
         self._accounts_path = accounts_path
         if not os.path.exists(accounts_path):
             os.makedirs(os.path.dirname(accounts_path), exist_ok=True)
@@ -24,6 +31,11 @@ class CsvDatabase(Database):
             os.makedirs(os.path.dirname(transactions_path), exist_ok=True)
             transactions_df = pd.DataFrame(columns=TRANSACTIONS_DF_COLUMNS)
             self._write_transactions_update(transactions_df)
+        self._cursors_path = cursors_path
+        if not os.path.exists(cursors_path):
+            os.makedirs(os.path.dirname(cursors_path), exist_ok=True)
+            cursors_df = pd.DataFrame(columns=CURSORS_DF_COLUMNS)
+            cursors_df.to_csv(self._cursors_path)
 
     def add_account(self, account: Account):
         accounts_df = self._read_accounts()
@@ -66,11 +78,38 @@ class CsvDatabase(Database):
         transactions_df = self._read_transactions()
         return [_transaction_from(row) for _, row in transactions_df.iterrows()]
 
+    def set_sync_cursor(self, source: Source, sync_cursor: SyncCursor):
+        cursors = self._read_cursors()
+        cursors[source.name] = sync_cursor
+        self._write_cursors_update(cursors)
+
+    def get_sync_cursor(self, source: Source) -> SyncCursor:
+        cursors = self._read_cursors()
+        return cursors.get(source.name, None)
+
     def _read_transactions(self) -> pd.DataFrame:
         return pd.read_csv(self._transactions_path)
 
     def _write_transactions_update(self, transactions_df: pd.DataFrame):
         transactions_df.to_csv(self._transactions_path, index=False)
+
+    def _read_cursors(self) -> Dict[str, SyncCursor]:
+        cursors_df = pd.read_csv(self._cursors_path, index_col=0)
+        cursors = {}
+        for index, row in cursors_df.iterrows():
+            data = json.loads(row[CURSOR_DATA])
+            cursors[index] = create_sync_cursor(row[CURSOR_TYPE], data)
+        return cursors
+
+    def _write_cursors_update(self, cursors: Dict[str, SyncCursor]):
+        cursors_dict = {}
+        for source_name, cursor in cursors.items():
+            cursors_dict[source_name] = {
+                CURSOR_TYPE: get_sync_cursor_type_from(cursor).value,
+                CURSOR_DATA: json.dumps(cursor.as_dict())
+            }
+        cursors_df = pd.DataFrame.from_dict(cursors_dict, orient='index')
+        cursors_df.to_csv(self._cursors_path)
 
 
 def _transaction_dict(transaction: Transaction) -> Dict:
