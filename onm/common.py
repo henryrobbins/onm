@@ -3,6 +3,9 @@ from enum import Enum
 from typing import NamedTuple
 
 
+class SourceType(Enum):
+    PLAID="plaid"
+
 class Account(NamedTuple):
     name: str
     balance: float

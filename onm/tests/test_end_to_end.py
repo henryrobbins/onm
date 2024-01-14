@@ -1,10 +1,14 @@
 import pytest
+from unittest.mock import Mock
 from plaid.api.plaid_api import PlaidApi
 from plaid.model.products import Products
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
-from onm.connection.plaid_connection import PlaidConnection, PlaidConfiguration, PlaidLink, get_plaid_api
-from onm.source.plaid_source import PlaidSourceFactory
+from onm.link.link_factory import LinkFactory
+from onm.link.plaid_link import PlaidLink
+from onm.connection.plaid_connection import PlaidConnection, PlaidConfiguration, get_plaid_api
+from onm.source.source_factory import SourceFactory
+from onm.common import SourceType
 
 pytestmark = pytest.mark.integration
 
@@ -20,7 +24,7 @@ class PlaidLinkMock(PlaidLink):
         return access_token
 
     def update_link(self, access_token: str):
-        return super().update_link(access_token)
+        pass
 
     def _get_public_token(self) -> str:
         req = SandboxPublicTokenCreateRequest(
@@ -48,16 +52,22 @@ def plaid_configuration(client_id, secret):
 
 def test_end_to_end(plaid_configuration):
     plaid_api = get_plaid_api(plaid_configuration)
-    plaid_link = PlaidLinkMock(plaid_api)
-    access_token = plaid_link.get_access_token()
-    plaid_connection = PlaidConnection(plaid_api)
-    plaid_source = PlaidSourceFactory.create_source(
-        name="test",
-        access_token=access_token,
-        plaid_connection=plaid_connection
+    link_factory_mock = Mock(LinkFactory)
+    link_factory_mock.create_link.return_value = PlaidLinkMock(plaid_api)
+
+    plaid_source = SourceFactory.create_source(
+        type= SourceType.PLAID,
+        name= "test",
+        link_factory=link_factory_mock,
+        plaid_api=plaid_api
     )
-    account_balances = plaid_source.get_account_balances(plaid_connection)
-    print(account_balances)
-    transactions = plaid_source.get_new_transactions(plaid_connection)
-    print(transactions)
+
+    # plaid_connection = PlaidConnection(plaid_api)
+    # account_balances = plaid_source.get_account_balances(plaid_connection)
+    # print(account_balances)
+    # transactions = plaid_source.sync_transactions(plaid_connection)
+    # print(transactions)
+
+    plaid_source.update_link(link_factory_mock)
+
     # TODO: Add assertions

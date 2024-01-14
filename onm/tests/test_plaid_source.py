@@ -6,7 +6,7 @@ from onm.connection.plaid_connection import PlaidConnection
 from onm.connection import connection
 from onm.connection.connection import AccountBalance, Transaction
 from onm.common import TransactionType
-from onm.source.plaid_source import PlaidSourceFactory
+from onm.source.plaid_source import PlaidSourceBuilder
 from onm.source.source import SyncTransactionsResponse
 from onm.sync import PlaidSyncCursor
 
@@ -58,7 +58,7 @@ def plaid_connection_mock():
 
 
 def test_plaid_source(plaid_connection_mock):
-    plaid_source = PlaidSourceFactory.create_source(
+    plaid_source = PlaidSourceBuilder.build(
         name = "test",
         access_token = ACCESS_TOKEN,
         plaid_connection = plaid_connection_mock

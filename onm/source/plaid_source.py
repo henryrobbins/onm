@@ -1,9 +1,11 @@
-from onm.common import Transaction, TransactionType
+from onm.common import Transaction, TransactionType, SourceType
+from onm.link.link_factory import LinkFactory
 from ..connection import connection
 from ..connection.plaid_connection import PlaidConnection
 from ..sync import PlaidSyncCursor
-from .source import Source, SourceFactory, SyncTransactionsResponse
-from typing import List, Dict
+from .source import Source, SyncTransactionsResponse
+from plaid.api.plaid_api import PlaidApi
+from typing import Dict, Type
 
 
 class PlaidSource(Source):
@@ -48,13 +50,20 @@ class PlaidSource(Source):
             type=TransactionType(t.type.value)
         )
 
-class PlaidSourceFactory(SourceFactory):
+    def update_link(self, link_factory: Type[LinkFactory] = LinkFactory,
+                    plaid_api: PlaidApi = None) -> None:
+        link = link_factory.create_link(SourceType.PLAID, plaid_api=plaid_api)
+        link.update_link(self.access_token)
 
-    def create_source(name: str, access_token: str, plaid_connection: PlaidConnection) -> PlaidSource:
+
+class PlaidSourceBuilder():
+
+    @staticmethod
+    def build(name: str, access_token: str, plaid_connection: PlaidConnection) -> PlaidSource:
         accounts = plaid_connection.get_account_balances(access_token)
         account_id_map = {a.account_id: a.account_name for a in accounts}
 
-        # TODO: custom naming logic
+        # TODO: custom naming logic (UserInputHandler)
         # account_names = {a.account_name: a for a in account_balances.keys()}
         # selected_accounts = _editor_account_selection(list(account_names.keys()))
 

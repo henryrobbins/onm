@@ -12,7 +12,8 @@ from plaid.model.link_token_create_response import LinkTokenCreateResponse
 from plaid.model.transactions_sync_response import TransactionsSyncResponse
 from plaid.model.item_public_token_exchange_response import ItemPublicTokenExchangeResponse
 from plaid.model.accounts_get_response import AccountsGetResponse
-from onm.connection.plaid_connection import TransactionType, PlaidConnection, PlaidConfiguration, PlaidLink, get_plaid_api
+from onm.link.plaid_link import PlaidLink
+from onm.connection.plaid_connection import TransactionType, PlaidConnection, PlaidConfiguration, get_plaid_api
 from onm.sync import PlaidSyncCursor
 
 pytestmark = pytest.mark.unit
