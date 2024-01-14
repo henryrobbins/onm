@@ -1,8 +1,13 @@
+from enum import Enum
 from abc import ABC, abstractmethod
 from ..common import Account, Transaction
 from ..sync import SyncCursor
 from ..source.source import Source
 from typing import List, Optional
+
+
+class DatabaseType(Enum):
+    CSV="csv"
 
 
 class Database(ABC):
