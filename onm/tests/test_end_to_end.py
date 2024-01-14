@@ -1,4 +1,5 @@
 import os
+import shutil
 import pytest
 from unittest.mock import Mock
 from plaid.api.plaid_api import PlaidApi
@@ -8,6 +9,8 @@ from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCr
 from onm.link.link_factory import LinkFactory
 from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import PlaidConnection, PlaidConfiguration, get_plaid_api
+from onm.sources import Sources
+from onm.database.database import Database
 from onm.source.source_factory import SourceFactory
 from onm.common import SourceType
 from onm.config import Config
@@ -16,7 +19,8 @@ pytestmark = pytest.mark.integration
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
 CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.ini")
-# DATABASE_PATH = os.path.join(RESOURCES_PATH, "csv_database")
+TEST_SOURCES_PATH = os.path.join(RESOURCES_PATH, "test_sources.ini")
+TEST_DATABASE_PATH = os.path.join(RESOURCES_PATH, "test_csv_database")
 
 
 class PlaidLinkMock(PlaidLink):
@@ -48,7 +52,12 @@ class PlaidLinkMock(PlaidLink):
 
 
 @pytest.fixture
-def plaid_configuration(client_id, secret):
+def config():
+    return Config(CONFIG_PATH)
+
+
+@pytest.fixture
+def plaid_configuration(client_id: str, secret: str) -> PlaidConfiguration:
     return PlaidConfiguration(
         client_id=client_id,
         secret=secret,
@@ -56,9 +65,21 @@ def plaid_configuration(client_id, secret):
     )
 
 
-def test_end_to_end(plaid_configuration):
+@pytest.fixture
+def sources(config: Config) -> Sources:
+    yield config.get_sources()
+    if os.path.exists(TEST_SOURCES_PATH):
+        os.remove(TEST_SOURCES_PATH)
 
-    config = Config(CONFIG_PATH)
+
+@pytest.fixture
+def database(config: Config) -> Database:
+    yield config.get_database()
+    if os.path.exists(TEST_DATABASE_PATH):
+        shutil.rmtree(TEST_DATABASE_PATH, ignore_errors=True)
+
+
+def test_end_to_end(plaid_configuration, sources, database):
 
     # Create new source
     plaid_api = get_plaid_api(plaid_configuration)
@@ -73,7 +94,6 @@ def test_end_to_end(plaid_configuration):
     plaid_source.update_link(link_factory_mock)
 
     # Add to sources
-    sources = config.get_sources()
     sources.add_source(plaid_source)
 
     # Get source
@@ -83,7 +103,10 @@ def test_end_to_end(plaid_configuration):
     sync_transactions_res = source.sync_transactions(plaid_connection)
 
     # Write to fake database
-    database = config.get_database()
+    # accounts
+    for account in account_balances:
+        database.add_account(account)
+    # transactions
     transactions = sync_transactions_res.transactions
     sync_cursor = sync_transactions_res.sync_cursor
     database.add_transactions(transactions)
@@ -91,6 +114,8 @@ def test_end_to_end(plaid_configuration):
 
     from_db_transactions = database.get_transactions()
     assert len(transactions) == len(from_db_transactions)
+    from_db_accounts = database.get_accounts()
+    assert len(account_balances) == len(from_db_accounts)
 
     # Fetch again (assume nothing changed)
     sync_transactions_res = source.sync_transactions(plaid_connection, sync_cursor)

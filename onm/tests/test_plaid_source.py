@@ -66,7 +66,8 @@ def test_plaid_source(plaid_connection_mock):
 
     account_balances = plaid_source.get_account_balances(plaid_connection_mock)
     assert 1 == len(account_balances)
-    assert 0.0 == account_balances["ONM CHECKING"]
+    account = account_balances[0]
+    assert 0.0 == account.balance
 
     sync_cursor = PlaidSyncCursor(cursor="c4498331dfe9edf14bf28e5ab6f51e58")
     res = plaid_source.sync_transactions(

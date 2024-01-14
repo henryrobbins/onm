@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, NamedTuple, Optional, Type
-from ..common import Transaction
+from typing import List, NamedTuple, Optional, Type
+from ..common import Transaction, Account
 from ..sync import SyncCursor
 from plaid.api.plaid_api import PlaidApi
 from ..link.link_factory import LinkFactory
@@ -22,7 +22,7 @@ class Source(ABC):
         return self._name
 
     @abstractmethod
-    def get_account_balances(self, connection: Connection) -> Dict[str, float]:
+    def get_account_balances(self, connection: Connection) -> List[Account]:
         pass
 
     @abstractmethod

@@ -1,11 +1,11 @@
-from onm.common import Transaction, TransactionType, SourceType
+from onm.common import Account, Transaction, TransactionType, SourceType
 from onm.link.link_factory import LinkFactory
 from ..connection import connection
 from ..connection.plaid_connection import PlaidConnection
 from ..sync import PlaidSyncCursor
 from .source import Source, SyncTransactionsResponse
 from plaid.api.plaid_api import PlaidApi
-from typing import Dict, Type
+from typing import List, Dict, Type
 
 
 class PlaidSource(Source):
@@ -24,10 +24,16 @@ class PlaidSource(Source):
     def account_id_map(self) -> str:
         return self._account_id_map
 
-    def get_account_balances(self, connection: PlaidConnection) -> Dict[str, float]:
+    def get_account_balances(self, connection: PlaidConnection) -> List[Account]:
         balances = connection.get_account_balances(self._access_token)
         # TODO: find better solution
-        return {self._account_id_map[b.account_id.lower()]: b.balance for b in balances}
+        accounts = []
+        for b in balances:
+            accounts.append(Account(
+                name= self._account_id_map[b.account_id.lower()],
+                balance= b.balance
+            ))
+        return accounts
 
     def sync_transactions(self, connection: PlaidConnection,
                           sync_cursor: PlaidSyncCursor = None) -> SyncTransactionsResponse:
