@@ -10,15 +10,9 @@ from onm.source.plaid_source import PlaidSource
 pytestmark = pytest.mark.unit
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
-ACCOUNTS_PATH = os.path.join(RESOURCES_PATH, "accounts.csv")
-TEST_ACCOUNTS_PATH = os.path.join(RESOURCES_PATH, "test_accounts.csv")
-NEW_ACCOUNTS_PATH = os.path.join(RESOURCES_PATH, "new_accounts.csv")
-TRANSACTIONS_PATH = os.path.join(RESOURCES_PATH, "transactions.csv")
-TEST_TRANSACTIONS_PATH = os.path.join(RESOURCES_PATH, "test_transactions.csv")
-NEW_TRANSACTIONS_PATH = os.path.join(RESOURCES_PATH, "new_transactions.csv")
-CURSORS_PATH = os.path.join(RESOURCES_PATH, "cursors.csv")
-TEST_CURSORS_PATH = os.path.join(RESOURCES_PATH, "test_cursors.csv")
-NEW_CURSORS_PATH = os.path.join(RESOURCES_PATH, "new_cursors.csv")
+DATABASE = os.path.join(RESOURCES_PATH, "csv_database")
+TEST_DATABASE = os.path.join(RESOURCES_PATH, "test_csv_database")
+NEW_DATABASE = os.path.join(RESOURCES_PATH, "new_csv_database")
 
 
 ONM_CHECKING = "onm_bank_checking"
@@ -26,27 +20,17 @@ ONM_SAVINGS = "onm_bank_savings"
 
 @pytest.fixture
 def existing_database():
-    shutil.copyfile(ACCOUNTS_PATH, TEST_ACCOUNTS_PATH)
-    shutil.copyfile(TRANSACTIONS_PATH, TEST_TRANSACTIONS_PATH)
-    shutil.copyfile(CURSORS_PATH, TEST_CURSORS_PATH)
-    yield CsvDatabase(TEST_ACCOUNTS_PATH, TEST_TRANSACTIONS_PATH, TEST_CURSORS_PATH)
-    if os.path.exists(TEST_ACCOUNTS_PATH):
-        os.remove(TEST_ACCOUNTS_PATH)
-    if os.path.exists(TEST_TRANSACTIONS_PATH):
-        os.remove(TEST_TRANSACTIONS_PATH)
-    if os.path.exists(TEST_CURSORS_PATH):
-        os.remove(TEST_CURSORS_PATH)
+    shutil.copytree(DATABASE, TEST_DATABASE)
+    yield CsvDatabase(TEST_DATABASE)
+    if os.path.exists(TEST_DATABASE):
+        shutil.rmtree(TEST_DATABASE, ignore_errors=True)
 
 
 @pytest.fixture
 def new_database():
-    yield CsvDatabase(NEW_ACCOUNTS_PATH, NEW_TRANSACTIONS_PATH, NEW_CURSORS_PATH)
-    if os.path.exists(NEW_ACCOUNTS_PATH):
-        os.remove(NEW_ACCOUNTS_PATH)
-    if os.path.exists(NEW_TRANSACTIONS_PATH):
-        os.remove(NEW_TRANSACTIONS_PATH)
-    if os.path.exists(NEW_CURSORS_PATH):
-        os.remove(NEW_CURSORS_PATH)
+    yield CsvDatabase(NEW_DATABASE)
+    if os.path.exists(NEW_DATABASE):
+        shutil.rmtree(NEW_DATABASE, ignore_errors=True)
 
 
 def test_add_account(new_database):

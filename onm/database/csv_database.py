@@ -3,10 +3,14 @@ import json
 import pandas as pd
 from datetime import datetime
 from onm.source.source import Source
-from onm.sync import SyncCursor, SyncCursorType, create_sync_cursor, get_sync_cursor_type_from
+from onm.sync import SyncCursor, create_sync_cursor, get_sync_cursor_type_from
 from .database import Database
 from ..common import Account, TransactionType, Transaction
 from typing import List, Dict
+
+ACCOUNTS = "accounts.csv"
+TRANSACTIONS = "transactions.csv"
+CURSORS = "cursors.csv"
 
 ACCOUNT_DF_COLUMNS = ["name", "balance"]
 TRANSACTIONS_DF_COLUMNS = \
@@ -20,20 +24,22 @@ DATE_FMT = r"%Y-%m-%d"
 
 class CsvDatabase(Database):
 
-    def __init__(self, accounts_path: str, transactions_path: str, cursors_path: str):
-        self._accounts_path = accounts_path
-        if not os.path.exists(accounts_path):
-            os.makedirs(os.path.dirname(accounts_path), exist_ok=True)
+    def __init__(self, database_path: str):
+        self._accounts_path = os.path.join(database_path, ACCOUNTS)
+        if not os.path.exists(self._accounts_path):
+            os.makedirs(os.path.dirname(self._accounts_path), exist_ok=True)
             accounts_df = pd.DataFrame(columns=ACCOUNT_DF_COLUMNS)
             self._write_accounts_update(accounts_df)
-        self._transactions_path = transactions_path
-        if not os.path.exists(transactions_path):
-            os.makedirs(os.path.dirname(transactions_path), exist_ok=True)
+
+        self._transactions_path = os.path.join(database_path, TRANSACTIONS)
+        if not os.path.exists(self._transactions_path):
+            os.makedirs(os.path.dirname(self._transactions_path), exist_ok=True)
             transactions_df = pd.DataFrame(columns=TRANSACTIONS_DF_COLUMNS)
             self._write_transactions_update(transactions_df)
-        self._cursors_path = cursors_path
-        if not os.path.exists(cursors_path):
-            os.makedirs(os.path.dirname(cursors_path), exist_ok=True)
+
+        self._cursors_path = os.path.join(database_path, CURSORS)
+        if not os.path.exists(self._cursors_path):
+            os.makedirs(os.path.dirname(self._cursors_path), exist_ok=True)
             cursors_df = pd.DataFrame(columns=CURSORS_DF_COLUMNS)
             cursors_df.to_csv(self._cursors_path)
 
