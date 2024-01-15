@@ -4,6 +4,7 @@ from typing import Dict
 from configparser import ConfigParser
 
 from onm.common import SourceType
+from onm.source.apple_csv_source import AppleCsvSource
 from onm.source.source import Source
 from onm.source.plaid_source import PlaidSource
 from onm.source.amex_csv_source import AmexCsvSource
@@ -32,6 +33,8 @@ class Sources:
             self._add_plaid_source(source)
         elif source.type == SourceType.AMEX_CSV:
             self._add_csv_source(source)
+        elif source.type == SourceType.APPLE_CSV:
+            self._add_csv_source(source)
         else:
             raise ValueError("Unsupported source")
         self._update()
@@ -48,7 +51,7 @@ class Sources:
     def _add_csv_source(self, source: Source):
         self.config[source.name] = {}
         config_source = self.config[source.name]
-        config_source[SOURCE_TYPE] = SourceType.AMEX_CSV.value
+        config_source[SOURCE_TYPE] = source.type.value
 
     def get_source(self, name: str) -> Source:
         if not self.config.has_section(name):
@@ -59,6 +62,8 @@ class Sources:
             return self._get_plaid_source(name, source)
         elif source_type == SourceType.AMEX_CSV:
             return AmexCsvSource(name)
+        elif source_type == SourceType.APPLE_CSV:
+            return AppleCsvSource(name)
         else:
             raise ValueError("Unsupported source")
 

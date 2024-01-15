@@ -6,6 +6,7 @@ from typing import NamedTuple
 class SourceType(Enum):
     PLAID="plaid"
     AMEX_CSV="amex_csv"
+    APPLE_CSV="apple_csv"
 
 class Account(NamedTuple):
     name: str

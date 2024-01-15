@@ -1,3 +1,4 @@
+from onm.source.apple_csv_source import AppleCsvSource
 from .source import Source
 from .plaid_source import PlaidSourceBuilder
 from .amex_csv_source import AmexCsvSource
@@ -24,5 +25,7 @@ class SourceFactory():
             return PlaidSourceBuilder.build(name, access_token, connection)
         elif type == SourceType.AMEX_CSV:
             return AmexCsvSource(name)
+        elif type == SourceType.APPLE_CSV:
+            return AppleCsvSource(name)
         else:
             raise ValueError("Unknown type")

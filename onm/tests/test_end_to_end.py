@@ -23,6 +23,7 @@ CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.ini")
 TEST_SOURCES_PATH = os.path.join(RESOURCES_PATH, "test_sources.ini")
 TEST_DATABASE_PATH = os.path.join(RESOURCES_PATH, "test_csv_database")
 AMEX_CSV_PATH = os.path.join(RESOURCES_PATH, "amex.csv")
+APPLE_CSV_PATH = os.path.join(RESOURCES_PATH, "apple.csv")
 
 class PlaidLinkMock(PlaidLink):
 
@@ -120,11 +121,35 @@ def test_amex_csv_end_to_end(config):
     database = config.get_database()
     transactions = database.get_transactions()
     accounts = database.get_accounts()
-    assert len(transactions) > 0
-    assert len(accounts) > 0
+    assert 3 == len(transactions)
+    assert 1 == len(accounts)
 
     # Fetch again (assume nothing changed)
     main.sync_source("amex", config,  csv_path=AMEX_CSV_PATH)
+    assert len(transactions) == len(database.get_transactions())
+    assert len(accounts) == len(database.get_accounts())
+
+    # TODO: Add more assertions
+
+
+def test_apple_csv_end_to_end(config):
+
+    main.add_source(
+        type = SourceType.APPLE_CSV,
+        name = "apple",
+        config = config
+    )
+    main.update_source("apple", config)
+    main.sync_source("apple", config, csv_path=APPLE_CSV_PATH)
+
+    database = config.get_database()
+    transactions = database.get_transactions()
+    accounts = database.get_accounts()
+    assert 5 == len(transactions)
+    assert 1 == len(accounts)
+
+    # Fetch again (assume nothing changed)
+    main.sync_source("apple", config,  csv_path=APPLE_CSV_PATH)
     assert len(transactions) == len(database.get_transactions())
     assert len(accounts) == len(database.get_accounts())
 

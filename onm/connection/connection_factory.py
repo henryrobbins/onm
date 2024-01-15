@@ -1,3 +1,4 @@
+from onm.connection.apple_csv_connection import AppleCsvConnection
 from ..common import SourceType
 from .connection import Connection
 from .plaid_connection import PlaidConnection
@@ -19,5 +20,9 @@ class ConnectionFactory():
             if csv_path is None:
                 raise ValueError("Must provide 'csv_path' for Amex CSV link")
             return AmexCsvConnection(csv_path)
+        elif type == SourceType.APPLE_CSV:
+            if csv_path is None:
+                raise ValueError("Must provide 'csv_path' for Amex CSV link")
+            return AppleCsvConnection(csv_path)
         else:
             raise ValueError("Unknown type")
