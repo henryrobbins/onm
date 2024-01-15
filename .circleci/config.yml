@@ -32,7 +32,7 @@ jobs:
           name: run integration tests
           command: |
             . venv/bin/activate
-            pytest -m integration -s onm/tests --client_id $(PLAID_CLIENT_ID) --secret $(PLAID_SECRET)
+            pytest -m integration -s onm/tests --client_id $PLAID_CLIENT_ID --secret $PLAID_SECRET
 
       # - codecov/upload:
       #     file: coverage.xml
