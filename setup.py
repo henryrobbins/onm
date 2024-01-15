@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://github.com/henryrobbins/onm.git",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    package_data={'onm': ['app/*', 'data/*']},
+    package_data={'onm': ['data/*', 'html/*']},
     license="MIT License",
     classifiers=[],
     entry_points={
