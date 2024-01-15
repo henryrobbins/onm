@@ -17,6 +17,10 @@ class PlaidSource(Source):
         self._account_id_map = account_id_map
 
     @property
+    def type(self) -> str:
+        return SourceType.PLAID
+
+    @property
     def access_token(self) -> str:
         return self._access_token
 

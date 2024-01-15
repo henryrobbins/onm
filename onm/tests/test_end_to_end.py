@@ -6,6 +6,7 @@ from plaid.api.plaid_api import PlaidApi
 from plaid.model.products import Products
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
+from onm import main
 from onm.link.link_factory import LinkFactory
 from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import PlaidConnection, PlaidConfiguration, get_plaid_api
@@ -51,76 +52,56 @@ class PlaidLinkMock(PlaidLink):
         return res.access_token
 
 
-@pytest.fixture
-def config():
-    return Config(CONFIG_PATH)
+class ConfigMock(Config):
+
+    def __init__(self, config_path: str, plaid_configuration: PlaidConfiguration):
+        super().__init__(config_path)
+        self._plaid_configuration = plaid_configuration
+
+
+    def get_plaid_config(self) -> PlaidConfiguration:
+        return self._plaid_configuration
 
 
 @pytest.fixture
-def plaid_configuration(client_id: str, secret: str) -> PlaidConfiguration:
-    return PlaidConfiguration(
+def config(client_id: str, secret: str) -> Config:
+    plaid_configuration = PlaidConfiguration(
         client_id=client_id,
         secret=secret,
         environment="sandbox"
     )
-
-
-@pytest.fixture
-def sources(config: Config) -> Sources:
-    yield config.get_sources()
+    config = ConfigMock(CONFIG_PATH, plaid_configuration)
+    yield config
     if os.path.exists(TEST_SOURCES_PATH):
         os.remove(TEST_SOURCES_PATH)
-
-
-@pytest.fixture
-def database(config: Config) -> Database:
-    yield config.get_database()
     if os.path.exists(TEST_DATABASE_PATH):
         shutil.rmtree(TEST_DATABASE_PATH, ignore_errors=True)
 
 
-def test_end_to_end(plaid_configuration, sources, database):
+def test_end_to_end(config):
 
-    # Create new source
-    plaid_api = get_plaid_api(plaid_configuration)
     link_factory_mock = Mock(LinkFactory)
+    plaid_api = get_plaid_api(config.get_plaid_config())
     link_factory_mock.create_link.return_value = PlaidLinkMock(plaid_api)
-    plaid_source = SourceFactory.create_source(
-        type= SourceType.PLAID,
-        name= "test",
-        link_factory=link_factory_mock,
-        plaid_api=plaid_api
+
+    main.add_source(
+        type = SourceType.PLAID,
+        name = "test",
+        config = config,
+        link_factory = link_factory_mock
     )
-    plaid_source.update_link(link_factory_mock)
+    main.update_source("test", config, link_factory=link_factory_mock)
+    main.sync_source("test", config)
 
-    # Add to sources
-    sources.add_source(plaid_source)
-
-    # Get source
-    source = sources.get_source("test")
-    plaid_connection = PlaidConnection(plaid_api)
-    account_balances = source.get_account_balances(plaid_connection)
-    sync_transactions_res = source.sync_transactions(plaid_connection)
-
-    # Write to fake database
-    # accounts
-    for account in account_balances:
-        database.add_account(account)
-    # transactions
-    transactions = sync_transactions_res.transactions
-    sync_cursor = sync_transactions_res.sync_cursor
-    database.add_transactions(transactions)
-    database.set_sync_cursor(source, sync_cursor)
-
-    from_db_transactions = database.get_transactions()
-    assert len(transactions) == len(from_db_transactions)
-    from_db_accounts = database.get_accounts()
-    assert len(account_balances) == len(from_db_accounts)
+    database = config.get_database()
+    transactions = database.get_transactions()
+    accounts = database.get_accounts()
+    assert len(transactions) > 0
+    assert len(accounts) > 0
 
     # Fetch again (assume nothing changed)
-    sync_transactions_res = source.sync_transactions(plaid_connection, sync_cursor)
-    transactions = sync_transactions_res.transactions
-    sync_cursor = sync_transactions_res.sync_cursor
-    assert 0 == len(transactions)
+    main.sync_source("test", config)
+    assert len(transactions) == len(database.get_transactions())
+    assert len(accounts) == len(database.get_accounts())
 
     # TODO: Add more assertions
