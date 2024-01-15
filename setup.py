@@ -22,6 +22,17 @@ setuptools.setup(
             'onm = onm.main:cli',
         ],
     },
-    install_requires=[],
+    install_requires=[
+        'pandas',
+        'plaid-python',
+    ],
+    extras_require={
+        "dev": ['pytest>=5',
+                'mock',
+                'pytest-cov',
+                'coverage>=4.5',
+                'flake8',
+                'black']
+    },
     python_requires='>=3.5'
 )
