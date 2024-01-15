@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  codecov: codecov/codecov@1.0.2
+  codecov: codecov/codecov@3.3.0
 jobs:
   build:
     docker:
@@ -46,9 +46,9 @@ jobs:
             . venv/bin/activate
             coverage run -m pytest -m unit -s onm/tests
             coverage xml
-      # - codecov/upload:
-      #     file: coverage.xml
-      #     token: $CODECOV_TOKEN
+      - codecov/upload:
+          file: coverage.xml
+          token: CODECOV_TOKEN
       - store_artifacts:
           path: unit-test-reports
           destination: unit-test-reports
