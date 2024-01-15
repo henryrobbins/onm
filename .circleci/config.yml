@@ -22,11 +22,17 @@ jobs:
             pip install -r test_requirements.txt
 
       - run:
-          name: run tests and generate coverage
+          name: run unit tests and generate coverage
           command: |
             . venv/bin/activate
-            coverage run -m pytest -s onm/*
+            coverage run -m pytest -m unit -s onm/tests
             coverage xml
+
+      - run:
+          name: run integration tests
+          command: |
+            . venv/bin/activate
+            pytest -m integration -s onm/tests --client_id $(PLAID_CLIENT_ID) --secret $(PLAID_SECRET)
 
       # - codecov/upload:
       #     file: coverage.xml
