@@ -22,3 +22,6 @@ coverage-report:
 html-coverage:
 	coverage html
 	open htmlcov/index.html
+
+lint:
+	flake8 onm
