@@ -32,6 +32,7 @@ def update_source(name: str, config: Config,
     sources = config.get_sources()
     source = sources.get_source(name)
     # TODO: Is this the right place for this? global config?
+    # Anything special for CSV?
     if source.type is SourceType.PLAID:
         plaid_config = config.get_plaid_config()
         plaid_api = get_plaid_api(plaid_config)
@@ -41,7 +42,8 @@ def update_source(name: str, config: Config,
 
 
 def sync_source(name: str, config: Config,
-                connection_factory: Type[ConnectionFactory] = ConnectionFactory) -> None:
+                connection_factory: Type[ConnectionFactory] = ConnectionFactory,
+                csv_path: str = None) -> None:
     database = config.get_database()
     sources = config.get_sources()
     source = sources.get_source(name)
@@ -51,7 +53,9 @@ def sync_source(name: str, config: Config,
         plaid_api = get_plaid_api(plaid_config)
     else:
         plaid_api = None
-    connection = connection_factory.create_connection(source.type, plaid_api=plaid_api)
+    connection = connection_factory.create_connection(source.type,
+                                                      plaid_api=plaid_api,
+                                                      csv_path=csv_path)
     account_balances = source.get_account_balances(connection)
     sync_cursor = database.get_sync_cursor(source)
     sync_transactions_res = source.sync_transactions(connection, sync_cursor)

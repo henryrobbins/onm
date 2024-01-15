@@ -3,12 +3,10 @@ from enum import Enum
 from typing import Dict
 from configparser import ConfigParser
 
+from onm.common import SourceType
 from onm.source.source import Source
 from onm.source.plaid_source import PlaidSource
-
-
-class SourceType(Enum):
-    PLAID="plaid"
+from onm.source.amex_csv_source import AmexCsvSource
 
 
 SOURCE_TYPE = "type"
@@ -30,10 +28,12 @@ class Sources:
         self.config.read(self.config_path)
 
     def add_source(self, source: Source):
-        if type(source) == PlaidSource:
+        if source.type == SourceType.PLAID:
             self._add_plaid_source(source)
+        elif source.type == SourceType.AMEX_CSV:
+            self._add_csv_source(source)
         else:
-            ValueError("Unsupported source")
+            raise ValueError("Unsupported source")
         self._update()
 
     def _add_plaid_source(self, source: PlaidSource):
@@ -45,6 +45,11 @@ class Sources:
             # TODO: find better long-term solution
             config_source[account_id] = account_name.replace("%", "")
 
+    def _add_csv_source(self, source: Source):
+        self.config[source.name] = {}
+        config_source = self.config[source.name]
+        config_source[SOURCE_TYPE] = SourceType.AMEX_CSV.value
+
     def get_source(self, name: str) -> Source:
         if not self.config.has_section(name):
             raise ValueError(f"Source '{name}' does not exist")
@@ -52,6 +57,10 @@ class Sources:
         source_type = SourceType(source[SOURCE_TYPE])
         if source_type == SourceType.PLAID:
             return self._get_plaid_source(name, source)
+        elif source_type == SourceType.AMEX_CSV:
+            return AmexCsvSource(name)
+        else:
+            raise ValueError("Unsupported source")
 
     def _get_plaid_source(self, name: str, source: Dict) -> PlaidSource:
         account_id_map = {}

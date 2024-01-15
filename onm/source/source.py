@@ -34,5 +34,5 @@ class Source(ABC):
         pass
 
     @abstractmethod
-    def update_link(self, link: Type[LinkFactory], plaid_api: Optional[PlaidApi]) -> None:
+    def update_link(self, link_factory: Type[LinkFactory] = LinkFactory, plaid_api: Optional[PlaidApi] = None) -> None:
         pass

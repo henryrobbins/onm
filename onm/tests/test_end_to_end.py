@@ -22,7 +22,7 @@ RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
 CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.ini")
 TEST_SOURCES_PATH = os.path.join(RESOURCES_PATH, "test_sources.ini")
 TEST_DATABASE_PATH = os.path.join(RESOURCES_PATH, "test_csv_database")
-
+AMEX_CSV_PATH = os.path.join(RESOURCES_PATH, "amex.csv")
 
 class PlaidLinkMock(PlaidLink):
 
@@ -78,7 +78,7 @@ def config(client_id: str, secret: str) -> Config:
         shutil.rmtree(TEST_DATABASE_PATH, ignore_errors=True)
 
 
-def test_end_to_end(config):
+def test_plaid_end_to_end(config):
 
     link_factory_mock = Mock(LinkFactory)
     plaid_api = get_plaid_api(config.get_plaid_config())
@@ -101,6 +101,30 @@ def test_end_to_end(config):
 
     # Fetch again (assume nothing changed)
     main.sync_source("test", config)
+    assert len(transactions) == len(database.get_transactions())
+    assert len(accounts) == len(database.get_accounts())
+
+    # TODO: Add more assertions
+
+
+def test_amex_csv_end_to_end(config):
+
+    main.add_source(
+        type = SourceType.AMEX_CSV,
+        name = "amex",
+        config = config
+    )
+    main.update_source("amex", config)
+    main.sync_source("amex", config, csv_path=AMEX_CSV_PATH)
+
+    database = config.get_database()
+    transactions = database.get_transactions()
+    accounts = database.get_accounts()
+    assert len(transactions) > 0
+    assert len(accounts) > 0
+
+    # Fetch again (assume nothing changed)
+    main.sync_source("amex", config,  csv_path=AMEX_CSV_PATH)
     assert len(transactions) == len(database.get_transactions())
     assert len(accounts) == len(database.get_accounts())
 
