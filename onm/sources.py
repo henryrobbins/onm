@@ -1,5 +1,4 @@
 import os
-from enum import Enum
 from typing import Dict
 from configparser import ConfigParser
 
@@ -17,15 +16,15 @@ ACCESS_TOKEN = "access_token"
 # TODO: Check more than one place for config file
 ONM_SOURCES_PATH = os.path.expanduser("~/.config/onm/sources.ini")
 
-class Sources:
 
+class Sources:
     def __init__(self, sources_path: str = None):
         self.config_path = sources_path or ONM_SOURCES_PATH
         if not os.path.exists(self.config_path):
             os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-            with open(self.config_path, 'w') as file:
+            with open(self.config_path, "w") as _:
                 pass
-        self.config = ConfigParser(comment_prefixes=';', allow_no_value=True)
+        self.config = ConfigParser(comment_prefixes=";", allow_no_value=True)
         self.config.read(self.config_path)
 
     def add_source(self, source: Source):
@@ -73,9 +72,7 @@ class Sources:
             if k not in ("name", "access_token"):
                 account_id_map[k] = v
         return PlaidSource(
-            name=name,
-            access_token=source[ACCESS_TOKEN],
-            account_id_map=account_id_map
+            name=name, access_token=source[ACCESS_TOKEN], account_id_map=account_id_map
         )
 
     def _update(self):

@@ -13,8 +13,14 @@ TRANSACTIONS = "transactions.csv"
 CURSORS = "cursors.csv"
 
 ACCOUNT_DF_COLUMNS = ["name", "balance"]
-TRANSACTIONS_DF_COLUMNS = \
-    ["date", "description", "amount", "category", "account_name", "type"]
+TRANSACTIONS_DF_COLUMNS = [
+    "date",
+    "description",
+    "amount",
+    "category",
+    "account_name",
+    "type",
+]
 CURSOR_TYPE = "type"
 CURSOR_DATA = "data"
 CURSORS_DF_COLUMNS = [CURSOR_TYPE, CURSOR_DATA]
@@ -23,7 +29,6 @@ DATE_FMT = r"%Y-%m-%d"
 
 
 class CsvDatabase(Database):
-
     def __init__(self, database_path: str):
         self._accounts_path = os.path.join(database_path, ACCOUNTS)
         if not os.path.exists(self._accounts_path):
@@ -112,9 +117,9 @@ class CsvDatabase(Database):
         for source_name, cursor in cursors.items():
             cursors_dict[source_name] = {
                 CURSOR_TYPE: get_sync_cursor_type_from(cursor).value,
-                CURSOR_DATA: json.dumps(cursor.as_dict())
+                CURSOR_DATA: json.dumps(cursor.as_dict()),
             }
-        cursors_df = pd.DataFrame.from_dict(cursors_dict, orient='index')
+        cursors_df = pd.DataFrame.from_dict(cursors_dict, orient="index")
         cursors_df.to_csv(self._cursors_path)
 
 
@@ -125,16 +130,16 @@ def _transaction_dict(transaction: Transaction) -> Dict:
         "amount": transaction.amount,
         "category": transaction.category,
         "account_name": transaction.account_name,
-        "type": transaction.type.value
+        "type": transaction.type.value,
     }
 
 
 def _transaction_from(dict: Dict) -> Transaction:
     return Transaction(
-        date= datetime.strptime(dict["date"], DATE_FMT).date(),
-        description= dict["description"],
+        date=datetime.strptime(dict["date"], DATE_FMT).date(),
+        description=dict["description"],
         amount=dict["amount"],
         category=dict["category"],
         account_name=dict["account_name"],
-        type=TransactionType(dict["type"])
+        type=TransactionType(dict["type"]),
     )

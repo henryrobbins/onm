@@ -1,5 +1,4 @@
 import pytest
-from mock import patch
 from unittest.mock import Mock
 from datetime import datetime
 from onm.connection.plaid_connection import PlaidConnection
@@ -17,13 +16,12 @@ ACCESS_TOKEN = "access-sandbox-a4a6c36b-0276-431d-a843-65c30b506e77"
 
 @pytest.fixture
 def plaid_connection_mock():
-
     plaid_connection = Mock(PlaidConnection)
 
     account = AccountBalance(
         account_name="ONM CHECKING",
         account_id="e02fc823810d73a9127d00948ab000d4",
-        balance=0.0
+        balance=0.0,
     )
 
     def get_account_balances_side_effect(*args):
@@ -31,8 +29,7 @@ def plaid_connection_mock():
             return [account]
         return None
 
-    plaid_connection.get_account_balances.side_effect = \
-        get_account_balances_side_effect
+    plaid_connection.get_account_balances.side_effect = get_account_balances_side_effect
 
     transaction = Transaction(
         date=datetime(2024, 1, 13).date(),
@@ -40,28 +37,25 @@ def plaid_connection_mock():
         amount=89.3,
         category="MUSIC",
         account_id="e02fc823810d73a9127d00948ab000d4",
-        type=connection.TransactionType.DEBIT
+        type=connection.TransactionType.DEBIT,
     )
 
     def sync_transactions_side_effect(*args, **kwargs):
         if kwargs["access_token"] == ACCESS_TOKEN:
             return SyncTransactionsResponse(
                 transactions=[transaction],
-                sync_cursor=PlaidSyncCursor(cursor="fd463d42b92c62fc5aa8f73db68c7e2d")
+                sync_cursor=PlaidSyncCursor(cursor="fd463d42b92c62fc5aa8f73db68c7e2d"),
             )
         return None
 
-    plaid_connection.sync_transactions.side_effect = \
-        sync_transactions_side_effect
+    plaid_connection.sync_transactions.side_effect = sync_transactions_side_effect
 
     return plaid_connection
 
 
 def test_plaid_source(plaid_connection_mock):
     plaid_source = PlaidSourceBuilder.build(
-        name = "test",
-        access_token = ACCESS_TOKEN,
-        plaid_connection = plaid_connection_mock
+        name="test", access_token=ACCESS_TOKEN, plaid_connection=plaid_connection_mock
     )
 
     account_balances = plaid_source.get_account_balances(plaid_connection_mock)
@@ -71,9 +65,8 @@ def test_plaid_source(plaid_connection_mock):
 
     sync_cursor = PlaidSyncCursor(cursor="c4498331dfe9edf14bf28e5ab6f51e58")
     res = plaid_source.sync_transactions(
-            connection=plaid_connection_mock,
-            sync_cursor=sync_cursor
-        )
+        connection=plaid_connection_mock, sync_cursor=sync_cursor
+    )
     assert "fd463d42b92c62fc5aa8f73db68c7e2d" == res.sync_cursor.cursor
     assert 1 == len(res.transactions)
     transaction = res.transactions[0]

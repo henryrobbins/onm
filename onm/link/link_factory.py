@@ -5,8 +5,7 @@ from plaid.api.plaid_api import PlaidApi
 from typing import Optional
 
 
-class LinkFactory():
-
+class LinkFactory:
     @staticmethod
     def create_link(type: SourceType, plaid_api: Optional[PlaidApi]) -> Link:
         if type == SourceType.PLAID:

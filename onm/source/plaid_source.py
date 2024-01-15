@@ -9,9 +9,9 @@ from typing import List, Dict, Type
 
 
 class PlaidSource(Source):
-
-    def __init__(self, name: str, access_token: str = None,
-                 account_id_map: Dict[str, str] = None):
+    def __init__(
+        self, name: str, access_token: str = None, account_id_map: Dict[str, str] = None
+    ):
         super().__init__(name)
         self._access_token = access_token
         self._account_id_map = account_id_map
@@ -33,22 +33,22 @@ class PlaidSource(Source):
         # TODO: find better solution
         accounts = []
         for b in balances:
-            accounts.append(Account(
-                name= self._account_id_map[b.account_id.lower()],
-                balance= b.balance
-            ))
+            accounts.append(
+                Account(
+                    name=self._account_id_map[b.account_id.lower()], balance=b.balance
+                )
+            )
         return accounts
 
-    def sync_transactions(self, connection: PlaidConnection,
-                          sync_cursor: PlaidSyncCursor = None) -> SyncTransactionsResponse:
+    def sync_transactions(
+        self, connection: PlaidConnection, sync_cursor: PlaidSyncCursor = None
+    ) -> SyncTransactionsResponse:
         sync_response = connection.sync_transactions(
-            sync_cursor=sync_cursor,
-            access_token=self._access_token
+            sync_cursor=sync_cursor, access_token=self._access_token
         )
         transactions = [self._transaction_from(t) for t in sync_response.transactions]
         return SyncTransactionsResponse(
-            transactions=transactions,
-            sync_cursor=sync_response.sync_cursor
+            transactions=transactions, sync_cursor=sync_response.sync_cursor
         )
 
     def _transaction_from(self, t: connection.Transaction) -> Transaction:
@@ -56,21 +56,24 @@ class PlaidSource(Source):
             date=t.date,
             description=t.description,
             amount=t.amount,
-            account_name=self._account_id_map[t.account_id.lower()],  # TODO: find better solution
+            # TODO: find better solution
+            account_name=self._account_id_map[t.account_id.lower()],
             category=t.category,
-            type=TransactionType(t.type.value)
+            type=TransactionType(t.type.value),
         )
 
-    def update_link(self, link_factory: Type[LinkFactory] = LinkFactory,
-                    plaid_api: PlaidApi = None) -> None:
+    def update_link(
+        self, link_factory: Type[LinkFactory] = LinkFactory, plaid_api: PlaidApi = None
+    ) -> None:
         link = link_factory.create_link(SourceType.PLAID, plaid_api=plaid_api)
         link.update_link(self.access_token)
 
 
-class PlaidSourceBuilder():
-
+class PlaidSourceBuilder:
     @staticmethod
-    def build(name: str, access_token: str, plaid_connection: PlaidConnection) -> PlaidSource:
+    def build(
+        name: str, access_token: str, plaid_connection: PlaidConnection
+    ) -> PlaidSource:
         accounts = plaid_connection.get_account_balances(access_token)
         account_id_map = {a.account_id: a.account_name for a in accounts}
 
@@ -86,7 +89,5 @@ class PlaidSourceBuilder():
         #     selected_account_balances[account] = balance
 
         return PlaidSource(
-            name=name,
-            access_token=access_token,
-            account_id_map=account_id_map
+            name=name, access_token=access_token, account_id_map=account_id_map
         )

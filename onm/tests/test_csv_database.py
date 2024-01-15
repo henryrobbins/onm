@@ -18,6 +18,7 @@ NEW_DATABASE = os.path.join(RESOURCES_PATH, "new_csv_database")
 ONM_CHECKING = "onm_bank_checking"
 ONM_SAVINGS = "onm_bank_savings"
 
+
 @pytest.fixture
 def existing_database():
     shutil.copytree(DATABASE, TEST_DATABASE)
@@ -62,18 +63,18 @@ def test_update_account(existing_database):
 
 def test_add_transactions(new_database):
     transaction = Transaction(
-        date=datetime(2024,3,12).date(),
+        date=datetime(2024, 3, 12).date(),
         description="TOMI JAZZ",
         amount=35.8,
         category="MUSIC",
         account_name="onm_bank",
-        type=TransactionType.DEBIT
+        type=TransactionType.DEBIT,
     )
     new_database.add_transactions([transaction])
     transactions = new_database.get_transactions()
     assert 1 == len(transactions)
     transaction = transactions[0]
-    assert datetime(2024,3,12).date() == transaction.date
+    assert datetime(2024, 3, 12).date() == transaction.date
     assert "TOMI JAZZ" == transaction.description
     assert 35.8 == transaction.amount
     assert "MUSIC" == transaction.category
@@ -85,7 +86,7 @@ def test_get_transactions(existing_database):
     transactions = existing_database.get_transactions()
     assert 1 == len(transactions)
     transaction = transactions[0]
-    assert datetime(2024,12,3).date() == transaction.date
+    assert datetime(2024, 12, 3).date() == transaction.date
     assert "UMPHREYS" == transaction.description
     assert 102.8 == transaction.amount
     assert "MUSIC" == transaction.category

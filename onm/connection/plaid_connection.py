@@ -4,8 +4,13 @@ from plaid.api.plaid_api import PlaidApi
 from plaid.model.personal_finance_category import PersonalFinanceCategory
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
-from .connection import (Connection, AccountBalance,
-                         TransactionType, Transaction, SyncTransactionsResponse)
+from .connection import (
+    Connection,
+    AccountBalance,
+    TransactionType,
+    Transaction,
+    SyncTransactionsResponse,
+)
 from ..sync import PlaidSyncCursor
 from typing import List, NamedTuple, Optional
 
@@ -30,17 +35,13 @@ def _get_host(env: str) -> str:
 def get_plaid_api(plaid_config: PlaidConfiguration) -> PlaidApi:
     config = Configuration(
         host=_get_host(plaid_config.environment),
-        api_key={
-            'clientId': plaid_config.client_id,
-            'secret': plaid_config.secret
-        }
+        api_key={"clientId": plaid_config.client_id, "secret": plaid_config.secret},
     )
     api_client = ApiClient(config)
     return PlaidApi(api_client)
 
 
 class PlaidConnection(Connection):
-
     def __init__(self, plaid_api: PlaidApi):
         self._plaid_api = plaid_api
 
@@ -50,33 +51,34 @@ class PlaidConnection(Connection):
         plaid_accounts = res.accounts
         accounts = []
         for plaid_account in plaid_accounts:
-            accounts.append(AccountBalance(
-                account_name = plaid_account.official_name or plaid_account.name,
-                account_id = plaid_account.account_id,
-                # TODO: Use current for now but should do based on account type
-                balance = plaid_account.balances.current
-            ))
+            accounts.append(
+                AccountBalance(
+                    account_name=plaid_account.official_name or plaid_account.name,
+                    account_id=plaid_account.account_id,
+                    # TODO: Use current for now but should do based on account type
+                    balance=plaid_account.balances.current,
+                )
+            )
         return accounts
 
-    def sync_transactions(self, sync_cursor: Optional[PlaidSyncCursor] = None,
-                          access_token: Optional[str] = None) -> SyncTransactionsResponse:
+    def sync_transactions(
+        self,
+        sync_cursor: Optional[PlaidSyncCursor] = None,
+        access_token: Optional[str] = None,
+    ) -> SyncTransactionsResponse:
         transactions = []
         has_more = True
         next_cursor = ""
         if sync_cursor is not None and sync_cursor.cursor is not None:
             next_cursor = sync_cursor.cursor
         while has_more:
-            req = TransactionsSyncRequest(
-                access_token=access_token,
-                cursor=next_cursor
-            )
+            req = TransactionsSyncRequest(access_token=access_token, cursor=next_cursor)
             res = self._plaid_api.transactions_sync(req)
             has_more = res.has_more
             next_cursor = res.next_cursor
             transactions += [_parse_plaid_transaction(t) for t in res.added]
         return SyncTransactionsResponse(
-            transactions=transactions,
-            sync_cursor=PlaidSyncCursor(cursor=next_cursor)
+            transactions=transactions, sync_cursor=PlaidSyncCursor(cursor=next_cursor)
         )
 
 
@@ -90,7 +92,7 @@ def _parse_plaid_transaction(transaction: transaction.Transaction) -> Transactio
         amount=amount,
         type=type,
         category=_parse_plaid_category(transaction.personal_finance_category),
-        account_id=transaction.account_id
+        account_id=transaction.account_id,
     )
 
 

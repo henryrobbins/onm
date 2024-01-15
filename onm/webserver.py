@@ -20,23 +20,20 @@ class DataStore:
 class PlaidLinkHTTPServer(BaseHTTPRequestHandler):
     def __init__(self, data_store: DataStore, *args, **kwargs):
         self.data_store = data_store
-        super().__init__( *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def serve_file(self, file_path: str):
         mimetype = mimetypes.guess_type(file_path)
         self.send_response(200)
-        self.send_header('Content-type', mimetype[0])
+        self.send_header("Content-type", mimetype[0])
         self.end_headers()
 
         with open(file_path, "r") as f:
             html = f.read()
 
-        html = html.replace(
-            "{{CONFIG_JSON}}",
-            json.dumps(self.data_store.config_json)
-        )
+        html = html.replace("{{CONFIG_JSON}}", json.dumps(self.data_store.config_json))
 
-        self.wfile.write(html.encode('utf-8'))
+        self.wfile.write(html.encode("utf-8"))
 
         self.wfile.flush()
 
@@ -45,7 +42,7 @@ class PlaidLinkHTTPServer(BaseHTTPRequestHandler):
 
     def send_404(self):
         self.send_response(404)
-        self.send_header('Content-type', "text/plain")
+        self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(b"not found")
         self.wfile.flush()
@@ -53,7 +50,7 @@ class PlaidLinkHTTPServer(BaseHTTPRequestHandler):
     def do_POST(self):
         path = self.path.split("?")[0]
         if path == "/api/success":
-            cl = int(self.headers.get('Content-Length', 0))
+            cl = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(cl)
 
             self.data_store.plaid_response = json.loads(body)
@@ -88,10 +85,7 @@ def serve(clientName: str, token: str, pageTitle: str, type: str) -> Dict:
     """
 
     config_json = dict(
-        clientName=clientName,
-        token=token,
-        pageTitle=pageTitle,
-        type=type
+        clientName=clientName, token=token, pageTitle=pageTitle, type=type
     )
 
     ds: DataStore = DataStore(config_json)
@@ -99,10 +93,10 @@ def serve(clientName: str, token: str, pageTitle: str, type: str) -> Dict:
     def make_handler(*args, **kwargs):
         return PlaidLinkHTTPServer(ds, *args, **kwargs)
 
-    with ThreadingHTTPServer(('127.0.0.1', 4583), make_handler) as httpd:
+    with ThreadingHTTPServer(("127.0.0.1", 4583), make_handler) as httpd:
         host, port = httpd.socket.getsockname()
-        print('Open the following page in your browser to continue:')
-        print(f'    http://{host}:{port}/link.html')
+        print("Open the following page in your browser to continue:")
+        print(f"    http://{host}:{port}/link.html")
 
         try:
             # well, until the API to shutdown is called

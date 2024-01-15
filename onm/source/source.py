@@ -13,7 +13,6 @@ class SyncTransactionsResponse(NamedTuple):
 
 
 class Source(ABC):
-
     def __init__(self, name: str):
         self._name = name
 
@@ -30,9 +29,15 @@ class Source(ABC):
         pass
 
     @abstractmethod
-    def sync_transactions(self, connection: Connection, sync_cursor: Optional[SyncCursor]) -> SyncTransactionsResponse:
+    def sync_transactions(
+        self, connection: Connection, sync_cursor: Optional[SyncCursor]
+    ) -> SyncTransactionsResponse:
         pass
 
     @abstractmethod
-    def update_link(self, link_factory: Type[LinkFactory] = LinkFactory, plaid_api: Optional[PlaidApi] = None) -> None:
+    def update_link(
+        self,
+        link_factory: Type[LinkFactory] = LinkFactory,
+        plaid_api: Optional[PlaidApi] = None,
+    ) -> None:
         pass

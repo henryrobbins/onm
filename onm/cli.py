@@ -16,7 +16,6 @@ from tinydb import TinyDB
 
 import plaid
 from plaid.api import plaid_api
-from plaid.model.accounts_get_request import AccountsGetRequest
 
 from .constants import MINT_CATEGORY_MAP
 
@@ -106,6 +105,7 @@ def setup():
         shutil.copy(src_file, dest_file)
     # Install dependencies
     subprocess.Popen("npm install", shell=True, cwd=app_dir)
+
 
 @cli.command()
 @click.argument("mint_export_path", type=click.Path(exists=True))
@@ -224,7 +224,6 @@ def sync_account(account_name: str):
     transactions = client.get_transactions(account)
     print(transaction_table(transactions))
     # TODO Update transactions table appropriately
-
 
 
 @cli.command()

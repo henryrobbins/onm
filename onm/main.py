@@ -7,10 +7,14 @@ from onm.connection.plaid_connection import get_plaid_api
 from typing import Type
 
 
-def add_source(type: SourceType, name: str, config: Config,
-               link_factory: Type[LinkFactory] = LinkFactory,
-               connection_factory: Type[ConnectionFactory] = ConnectionFactory,
-               source_factory: Type[SourceFactory] = SourceFactory) -> None:
+def add_source(
+    type: SourceType,
+    name: str,
+    config: Config,
+    link_factory: Type[LinkFactory] = LinkFactory,
+    connection_factory: Type[ConnectionFactory] = ConnectionFactory,
+    source_factory: Type[SourceFactory] = SourceFactory,
+) -> None:
     # TODO: Is this the right place for this? global config?
     if type == SourceType.PLAID:
         plaid_config = config.get_plaid_config()
@@ -22,13 +26,15 @@ def add_source(type: SourceType, name: str, config: Config,
         name=name,
         link_factory=link_factory,
         connection_factory=connection_factory,
-        plaid_api=plaid_api)
+        plaid_api=plaid_api,
+    )
     sources = config.get_sources()
     sources.add_source(source)
 
 
-def update_source(name: str, config: Config,
-                  link_factory: Type[LinkFactory] = LinkFactory) -> None:
+def update_source(
+    name: str, config: Config, link_factory: Type[LinkFactory] = LinkFactory
+) -> None:
     sources = config.get_sources()
     source = sources.get_source(name)
     # TODO: Is this the right place for this? global config?
@@ -41,9 +47,12 @@ def update_source(name: str, config: Config,
     source.update_link(link_factory=link_factory, plaid_api=plaid_api)
 
 
-def sync_source(name: str, config: Config,
-                connection_factory: Type[ConnectionFactory] = ConnectionFactory,
-                csv_path: str = None) -> None:
+def sync_source(
+    name: str,
+    config: Config,
+    connection_factory: Type[ConnectionFactory] = ConnectionFactory,
+    csv_path: str = None,
+) -> None:
     database = config.get_database()
     sources = config.get_sources()
     source = sources.get_source(name)
@@ -53,9 +62,9 @@ def sync_source(name: str, config: Config,
         plaid_api = get_plaid_api(plaid_config)
     else:
         plaid_api = None
-    connection = connection_factory.create_connection(source.type,
-                                                      plaid_api=plaid_api,
-                                                      csv_path=csv_path)
+    connection = connection_factory.create_connection(
+        source.type, plaid_api=plaid_api, csv_path=csv_path
+    )
     account_balances = source.get_account_balances(connection)
     sync_cursor = database.get_sync_cursor(source)
     sync_transactions_res = source.sync_transactions(connection, sync_cursor)

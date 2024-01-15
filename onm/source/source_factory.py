@@ -9,19 +9,20 @@ from plaid.api.plaid_api import PlaidApi
 from typing import Type, Optional
 
 
-class SourceFactory():
-
+class SourceFactory:
     @staticmethod
-    def create_source(type: SourceType, name: str,
-                      link_factory: Type[LinkFactory] = LinkFactory,
-                      connection_factory: Type[ConnectionFactory] = ConnectionFactory,
-                      plaid_api: Optional[PlaidApi] = None,
-                      csv_type: Optional[str] = None) -> Source:
+    def create_source(
+        type: SourceType,
+        name: str,
+        link_factory: Type[LinkFactory] = LinkFactory,
+        connection_factory: Type[ConnectionFactory] = ConnectionFactory,
+        plaid_api: Optional[PlaidApi] = None,
+        csv_type: Optional[str] = None,
+    ) -> Source:
         if type == SourceType.PLAID:
             link = link_factory.create_link(type, plaid_api=plaid_api)
             access_token = link.get_access_token()
-            connection = connection_factory.create_connection(type,
-                                                            plaid_api=plaid_api)
+            connection = connection_factory.create_connection(type, plaid_api=plaid_api)
             return PlaidSourceBuilder.build(name, access_token, connection)
         elif type == SourceType.AMEX_CSV:
             return AmexCsvSource(name)

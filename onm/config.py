@@ -1,11 +1,10 @@
 import os
-from configparser import ConfigParser
+from configparser import ConfigParser, NoSectionError
 from .sources import Sources
 from .database.database import Database, DatabaseType
 from .database.database_factory import DatabaseFactory
 from .connection.plaid_connection import PlaidConfiguration
 import pkg_resources
-from typing import Optional
 
 # TODO: Check more than one place for config file
 ONM_CONFIG_PATH = os.path.expanduser("~/.config/onm/config.ini")
@@ -23,14 +22,14 @@ PLAID_ENV = "environment"
 
 
 DEFAULT_CONFIG_PATH = pkg_resources.resource_filename(__name__, "data/config.ini")
-DEFAULT_CONFIG = ConfigParser(comment_prefixes=';', allow_no_value=True)
+DEFAULT_CONFIG = ConfigParser(comment_prefixes=";", allow_no_value=True)
 DEFAULT_CONFIG.read(DEFAULT_CONFIG_PATH)
 
-class Config:
 
+class Config:
     def __init__(self, config_path: str = None):
         self.config_path = config_path or ONM_CONFIG_PATH
-        self.config = ConfigParser(comment_prefixes=';', allow_no_value=True)
+        self.config = ConfigParser(comment_prefixes=";", allow_no_value=True)
         self.config.read(self.config_path)
 
     def get_plaid_config(self) -> PlaidConfiguration:
@@ -39,14 +38,14 @@ class Config:
         return PlaidConfiguration(
             client_id=self.config[PLAID_SECTION][PLAID_CLIENT_ID],
             secret=self.config[PLAID_SECTION][PLAID_SECRET],
-            environment=self.config[PLAID_SECTION][PLAID_ENV]
+            environment=self.config[PLAID_SECTION][PLAID_ENV],
         )
 
     def get_database(self) -> Database:
         try:
             database_type = DatabaseType(self.config[ONM_SECTION][DATABASE_TYPE])
             kwargs = self.config[DATABASE_SECTION]
-        except:
+        except (NoSectionError, KeyError):
             # TODO: some warning falling back (maybe in verbose mode)
             database_type = DatabaseType(DEFAULT_CONFIG[ONM_SECTION][DATABASE_TYPE])
             kwargs = DEFAULT_CONFIG[DATABASE_SECTION]
@@ -55,7 +54,7 @@ class Config:
     def get_sources(self) -> Sources:
         try:
             sources_path = os.path.expanduser(self.config[ONM_SECTION][SOURCES_PATH])
-        except:
+        except (NoSectionError, KeyError):
             # TODO: some warning falling back (maybe in verbose mode)
             sources_path = os.path.expanduser(DEFAULT_CONFIG[ONM_SECTION][SOURCES_PATH])
         return Sources(sources_path)

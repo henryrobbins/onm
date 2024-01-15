@@ -4,9 +4,10 @@ from typing import NamedTuple
 
 
 class SourceType(Enum):
-    PLAID="plaid"
-    AMEX_CSV="amex_csv"
-    APPLE_CSV="apple_csv"
+    PLAID = "plaid"
+    AMEX_CSV = "amex_csv"
+    APPLE_CSV = "apple_csv"
+
 
 class Account(NamedTuple):
     name: str
@@ -14,8 +15,8 @@ class Account(NamedTuple):
 
 
 class TransactionType(Enum):
-    CREDIT= "credit"
-    DEBIT= "debit"
+    CREDIT = "credit"
+    DEBIT = "debit"
 
 
 class Transaction(NamedTuple):

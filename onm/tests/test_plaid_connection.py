@@ -10,10 +10,17 @@ from plaid.model.transaction import Transaction
 from plaid.model.personal_finance_category import PersonalFinanceCategory
 from plaid.model.link_token_create_response import LinkTokenCreateResponse
 from plaid.model.transactions_sync_response import TransactionsSyncResponse
-from plaid.model.item_public_token_exchange_response import ItemPublicTokenExchangeResponse
+from plaid.model.item_public_token_exchange_response import (
+    ItemPublicTokenExchangeResponse,
+)
 from plaid.model.accounts_get_response import AccountsGetResponse
 from onm.link.plaid_link import PlaidLink
-from onm.connection.plaid_connection import TransactionType, PlaidConnection, PlaidConfiguration, get_plaid_api
+from onm.connection.plaid_connection import (
+    TransactionType,
+    PlaidConnection,
+    PlaidConfiguration,
+    get_plaid_api,
+)
 from onm.sync import PlaidSyncCursor
 
 pytestmark = pytest.mark.unit
@@ -26,12 +33,11 @@ LINK_TOKEN = "link-sandbox-cd3f30bf-cd14-43f8-9355-a5a48f3ed700"
 PUBLIC_TOKEN = "public-sandbox-a05be323-564f-48c7-bbcb-57dd426efe3c"
 ACCESS_TOKEN = "access-sandbox-a4a6c36b-0276-431d-a843-65c30b506e77"
 
+
 @pytest.fixture
 def plaid_configuration():
     return PlaidConfiguration(
-        client_id = TEST_CLIENT_ID,
-        secret = TEST_SECRET,
-        environment = TEST_ENVIRONMENT
+        client_id=TEST_CLIENT_ID, secret=TEST_SECRET, environment=TEST_ENVIRONMENT
     )
 
 
@@ -44,7 +50,7 @@ def test_get_plaid_api(plaid_configuration):
     assert TEST_SECRET == config.api_key["secret"]
 
 
-@patch('onm.webserver.serve')
+@patch("onm.webserver.serve")
 def test_plaid_link_get_access_token(webserver_serve_mock):
     plaid_api = Mock(PlaidApi)
 
@@ -53,10 +59,12 @@ def test_plaid_link_get_access_token(webserver_serve_mock):
     plaid_api.link_token_create.return_value = link_token_res
 
     def webserver_serve_mock_side_effect(**kwargs):
-        if (kwargs.get("token") == LINK_TOKEN and
-            kwargs.get("type") == "link" and
-            kwargs.get("clientName") == "onm" and
-            kwargs.get("pageTitle") == "Link Account Credentials"):
+        if (
+            kwargs.get("token") == LINK_TOKEN
+            and kwargs.get("type") == "link"
+            and kwargs.get("clientName") == "onm"
+            and kwargs.get("pageTitle") == "Link Account Credentials"
+        ):
             return {"public_token": PUBLIC_TOKEN}
         return {}
 
@@ -71,14 +79,13 @@ def test_plaid_link_get_access_token(webserver_serve_mock):
             return token_exchange_res
         return None
 
-    plaid_api.item_public_token_exchange.side_effect = \
-        token_exchange_side_effect
+    plaid_api.item_public_token_exchange.side_effect = token_exchange_side_effect
 
     plaid_link = PlaidLink(plaid_api)
     assert ACCESS_TOKEN == plaid_link.get_access_token()
 
 
-@patch('onm.webserver.serve')
+@patch("onm.webserver.serve")
 def test_plaid_link_update_link(webserver_serve_mock):
     plaid_api = Mock(PlaidApi)
 
@@ -100,7 +107,7 @@ def test_plaid_link_update_link(webserver_serve_mock):
         clientName="onm",
         pageTitle="Update Account Credentials",
         type="update",
-        token=LINK_TOKEN
+        token=LINK_TOKEN,
     )
 
 
@@ -115,7 +122,7 @@ def plaid_api_mock():
         official_name="ONM Bank",
         name="onm",
         account_id="bc3eb2e652219571d5897b8422869388",
-        balances=balance
+        balances=balance,
     )
     accounts = [account]
     accounts_get_res = Mock(AccountsGetResponse)
@@ -130,26 +137,21 @@ def plaid_api_mock():
     plaid_api.accounts_balance_get.side_effect = accounts_balance_get_side_effect
 
     personal_finance_category = Mock(PersonalFinanceCategory)
-    personal_finance_category.configure_mock(
-        primary="ENTERTAINMENT",
-        detailed="MUSIC"
-    )
+    personal_finance_category.configure_mock(primary="ENTERTAINMENT", detailed="MUSIC")
 
     transaction = Mock(Transaction)
     transaction.configure_mock(
-        date= datetime(2024, 1, 13).date(),
+        date=datetime(2024, 1, 13).date(),
         name="TOMI JAZZ",
         amount=-78.9,
         personal_finance_category=personal_finance_category,
-        account_id="bc3eb2e652219571d5897b8422869388"
+        account_id="bc3eb2e652219571d5897b8422869388",
     )
 
     transactions = [transaction]
     transactions_sync_res = Mock(TransactionsSyncResponse)
     transactions_sync_res.configure_mock(
-        has_more=False,
-        next_cursor="",
-        added=transactions
+        has_more=False, next_cursor="", added=transactions
     )
 
     def transactions_sync_side_effect(*args):
@@ -177,10 +179,8 @@ def test_plaid_connection_get_new_transactions(plaid_api_mock):
     plaid_connection = PlaidConnection(plaid_api_mock)
     sync_cursor = PlaidSyncCursor(cursor="c4498331dfe9edf14bf28e5ab6f51e58")
     res = plaid_connection.sync_transactions(
-        sync_cursor=sync_cursor,
-        access_token=ACCESS_TOKEN
+        sync_cursor=sync_cursor, access_token=ACCESS_TOKEN
     )
-    new_sync_cursor = res.sync_cursor
     transactions = res.transactions
     assert 1 == len(transactions)
     transaction = transactions[0]

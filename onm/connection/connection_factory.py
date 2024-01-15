@@ -7,11 +7,13 @@ from plaid.api.plaid_api import PlaidApi
 from typing import Optional
 
 
-class ConnectionFactory():
-
+class ConnectionFactory:
     @staticmethod
-    def create_connection(type: SourceType, plaid_api: Optional[PlaidApi] = None,
-                          csv_path: Optional[str] = None) -> Connection:
+    def create_connection(
+        type: SourceType,
+        plaid_api: Optional[PlaidApi] = None,
+        csv_path: Optional[str] = None,
+    ) -> Connection:
         if type == SourceType.PLAID:
             if plaid_api is None:
                 raise ValueError("Must provide 'plaid_api' for plaid link")

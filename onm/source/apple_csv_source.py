@@ -9,7 +9,6 @@ from typing import List, Optional, Type
 
 
 class AppleCsvSource(Source):
-
     def __init__(self, name: str):
         super().__init__(name)
 
@@ -21,18 +20,16 @@ class AppleCsvSource(Source):
         balances = connection.get_account_balances()
         accounts = []
         for b in balances:
-            accounts.append(Account(
-                name= self._name,
-                balance= b.balance
-            ))
+            accounts.append(Account(name=self._name, balance=b.balance))
         return accounts
 
-    def sync_transactions(self, connection: AmexCsvConnection, sync_cursor: Optional[SyncCursor]) -> SyncTransactionsResponse:
+    def sync_transactions(
+        self, connection: AmexCsvConnection, sync_cursor: Optional[SyncCursor]
+    ) -> SyncTransactionsResponse:
         sync_response = connection.sync_transactions(sync_cursor=sync_cursor)
         transactions = [self._transaction_from(t) for t in sync_response.transactions]
         return SyncTransactionsResponse(
-            transactions=transactions,
-            sync_cursor=sync_response.sync_cursor
+            transactions=transactions, sync_cursor=sync_response.sync_cursor
         )
 
     def _transaction_from(self, t: connection.Transaction) -> Transaction:
@@ -42,8 +39,12 @@ class AppleCsvSource(Source):
             amount=t.amount,
             account_name=self._name,
             category=t.category,
-            type=TransactionType(t.type.value)
+            type=TransactionType(t.type.value),
         )
 
-    def update_link(self, link_factory: Type[LinkFactory] = LinkFactory, plaid_api: Optional[PlaidApi] = None) -> None:
+    def update_link(
+        self,
+        link_factory: Type[LinkFactory] = LinkFactory,
+        plaid_api: Optional[PlaidApi] = None,
+    ) -> None:
         return super().update_link()

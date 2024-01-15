@@ -7,11 +7,10 @@ from typing import List, Optional
 
 
 class DatabaseType(Enum):
-    CSV="csv"
+    CSV = "csv"
 
 
 class Database(ABC):
-
     @abstractmethod
     def add_account(self, account: Account):
         pass

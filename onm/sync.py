@@ -5,8 +5,8 @@ from typing import Dict
 
 
 class SyncCursorType(Enum):
-    PLAID="plaid"
-    CSV="csv"
+    PLAID = "plaid"
+    CSV = "csv"
 
 
 class SyncCursor(ABC):
@@ -14,7 +14,6 @@ class SyncCursor(ABC):
 
 
 class PlaidSyncCursor(SyncCursor):
-
     def __init__(self, cursor: str):
         self._cursor = cursor
 
@@ -27,9 +26,10 @@ class PlaidSyncCursor(SyncCursor):
 
 
 class CsvSyncCursor(SyncCursor):
-
     def __init__(self, latest_transaction_date: str):
-        self._latest_transaction_date = datetime.fromisoformat(latest_transaction_date).date()
+        self._latest_transaction_date = datetime.fromisoformat(
+            latest_transaction_date
+        ).date()
 
     @property
     def latest_transaction_date(self) -> str:
@@ -46,13 +46,13 @@ def create_sync_cursor(type: str, data: Dict) -> SyncCursor:
     elif sync_cursor_type == SyncCursorType.CSV:
         return CsvSyncCursor(**data)
     else:
-        raise ValueError(f"unknown error")
+        raise ValueError("unknown error")
 
 
 def get_sync_cursor_type_from(sync_cursor: SyncCursor):
-    if type(sync_cursor) == PlaidSyncCursor:
+    if type(sync_cursor) is PlaidSyncCursor:
         return SyncCursorType.PLAID
-    elif type(sync_cursor) == CsvSyncCursor:
+    elif type(sync_cursor) is CsvSyncCursor:
         return SyncCursorType.CSV
     else:
-        raise ValueError(f"Unknown sync cursor type")
+        raise ValueError("Unknown sync cursor type")
