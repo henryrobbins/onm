@@ -5,50 +5,80 @@ jobs:
   build:
     docker:
       - image: cimg/python:3.9.18
-
-    working_directory: ~/repo
-
     steps:
       - checkout
-
       - restore_cache:
           key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
-
       - run:
-          name: install
+          name: Install dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install -r test_requirements.txt
-
-      - run:
-          name: run unit tests and generate coverage
-          command: |
-            . venv/bin/activate
-            coverage run -m pytest -m unit -s onm/tests
-            coverage xml
-
-      - run:
-          name: run integration tests
-          command: |
-            . venv/bin/activate
-            pytest -m integration -s onm/tests --client_id $PLAID_CLIENT_ID --secret $PLAID_SECRET
-
-      # - codecov/upload:
-      #     file: coverage.xml
-      #     token: $CODECOV_TOKEN
-
-      - run:
-          name: run linting via flake8
-          command: |
-            . venv/bin/activate
-            flake8 onm
-
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
           paths:
             - "venv"
 
+  lint:
+    docker:
+      - image: cimg/python:3.9.18
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
+      - run:
+          name: Lint with flake8
+          command: |
+            . venv/bin/activate
+            flake8 onm
+
+  unit_tests:
+    docker:
+      - image: cimg/python:3.9.18
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
+      - run:
+          name: Run unit tests and generate coverage
+          command: |
+            . venv/bin/activate
+            coverage run -m pytest -m unit -s onm/tests
+            coverage xml
+      # - codecov/upload:
+      #     file: coverage.xml
+      #     token: $CODECOV_TOKEN
       - store_artifacts:
-          path: test-reports
-          destination: test-reports
+          path: unit-test-reports
+          destination: unit-test-reports
+
+  integration_tests:
+    docker:
+      - image: cimg/python:3.9.18
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "test_requirements.txt" }}
+      - run:
+          name: run integration tests
+          command: |
+            . venv/bin/activate
+            pytest -m integration -s onm/tests --client_id $PLAID_CLIENT_ID --secret $PLAID_SECRET
+      - store_artifacts:
+            path: integration-test-reports
+            destination: integration-test-reports
+
+workflows:
+  build-test-and-deploy:
+      jobs:
+        - build
+        - lint:
+            requires:
+              - build
+        - unit_tests:
+            requires:
+              - build
+        - integration_tests:
+            requires:
+              - build
