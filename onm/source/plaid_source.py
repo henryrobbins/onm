@@ -30,13 +30,10 @@ class PlaidSource(Source):
 
     def get_account_balances(self, connection: PlaidConnection) -> List[Account]:
         balances = connection.get_account_balances(self._access_token)
-        # TODO: find better solution
         accounts = []
         for b in balances:
             accounts.append(
-                Account(
-                    name=self._account_id_map[b.account_id.lower()], balance=b.balance
-                )
+                Account(name=self._account_id_map[b.account_id], balance=b.balance)
             )
         return accounts
 
@@ -56,8 +53,7 @@ class PlaidSource(Source):
             date=t.date,
             description=t.description,
             amount=t.amount,
-            # TODO: find better solution
-            account_name=self._account_id_map[t.account_id.lower()],
+            account_name=self._account_id_map[t.account_id],
             category=t.category,
             type=TransactionType(t.type.value),
         )

@@ -14,25 +14,17 @@ setuptools.setup(
     url="https://github.com/henryrobbins/onm.git",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    package_data={'onm': ['data/*', 'html/*']},
+    package_data={"onm": ["data/*", "html/*"]},
     license="MIT License",
     classifiers=[],
     entry_points={
-        'console_scripts': [
-            'onm = onm.main:cli',
+        "console_scripts": [
+            "onm = onm.main:cli",
         ],
     },
-    install_requires=[
-        'pandas',
-        'plaid-python',
-    ],
+    install_requires=["pandas", "plaid-python", "tomlkit"],
     extras_require={
-        "dev": ['pytest>=5',
-                'mock',
-                'pytest-cov',
-                'coverage>=4.5',
-                'flake8',
-                'black']
+        "dev": ["pytest>=5", "mock", "pytest-cov", "coverage>=4.5", "flake8", "black"]
     },
-    python_requires='>=3.5'
+    python_requires=">=3.5",
 )
