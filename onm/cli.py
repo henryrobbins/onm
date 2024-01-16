@@ -15,7 +15,7 @@ from .constants import MINT_CATEGORY_MAP
 ONM_CONFIG_PATH = "~/.config/onm/config"
 ONM_INI_PATH = "~/.config/onm/config.ini"
 # DEFAULT_DIRECTORY = "~/onm"
-APP_FILES = ['index.html', 'oauth.html', 'server.js', 'package.json']
+APP_FILES = ["index.html", "oauth.html", "server.js", "package.json"]
 
 
 @click.group()
@@ -47,10 +47,7 @@ def import_mint_data(mint_export_path):
     config = Config()
 
     for account_name in last_updated:
-        account = Account(
-            account_name=account_name,
-            balance=0
-        )
+        account = Account(account_name=account_name, balance=0)
         config.update_account(account)
 
     df.to_csv(config.transactions, index=False)
@@ -61,7 +58,7 @@ def import_mint_data(mint_export_path):
 def _editor_account_selection(account_names):
     tmp = tempfile.NamedTemporaryFile()
 
-    with open(tmp.name, 'w') as f:
+    with open(tmp.name, "w") as f:
         lines = [f"{i+1}. {name}" for i, name in enumerate(account_names)]
         f.write("\n".join(lines))
 
@@ -80,7 +77,7 @@ def _editor_account_selection(account_names):
 
 
 @cli.command()
-@click.option('-c', '--config', help='Configuration file')
+@click.option("-c", "--config", help="Configuration file")
 def link_item(config):
     """Link an item via Plaid."""
     raise NotImplementedError
@@ -93,5 +90,5 @@ def sync_account(account_name: str):
     raise NotImplementedError
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

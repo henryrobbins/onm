@@ -3,10 +3,9 @@ from typing import Dict
 from configparser import ConfigParser
 
 from onm.common import SourceType
-from onm.source.apple_csv_source import AppleCsvSource
 from onm.source.source import Source
 from onm.source.plaid_source import PlaidSource
-from onm.source.amex_csv_source import AmexCsvSource
+from onm.source.csv_source import AppleCsvSource, AmexCsvSource
 
 
 SOURCE_TYPE = "type"

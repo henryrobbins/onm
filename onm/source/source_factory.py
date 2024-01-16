@@ -1,7 +1,6 @@
-from onm.source.apple_csv_source import AppleCsvSource
 from .source import Source
 from .plaid_source import PlaidSourceBuilder
-from .amex_csv_source import AmexCsvSource
+from onm.source.csv_source import AppleCsvSource, AmexCsvSource
 from ..common import SourceType
 from ..link.link_factory import LinkFactory
 from ..connection.connection_factory import ConnectionFactory

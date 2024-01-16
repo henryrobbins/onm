@@ -37,13 +37,11 @@ def update_source(
 ) -> None:
     sources = config.get_sources()
     source = sources.get_source(name)
-    # TODO: Is this the right place for this? global config?
-    # Anything special for CSV?
-    if source.type is SourceType.PLAID:
-        plaid_config = config.get_plaid_config()
-        plaid_api = get_plaid_api(plaid_config)
-    else:
-        plaid_api = None
+    if source.type is not SourceType.PLAID:
+        # TODO: Any warning? Perhaps in verbose mode?
+        return
+    plaid_config = config.get_plaid_config()
+    plaid_api = get_plaid_api(plaid_config)
     source.update_link(link_factory=link_factory, plaid_api=plaid_api)
 
 

@@ -1,4 +1,5 @@
-import pandas as pd
+from abc import ABC
+from onm.connection.csv_reader import CsvReader, AmexCsvReader, AppleCsvReader
 from onm.sync import CsvSyncCursor
 from .connection import (
     Connection,
@@ -10,26 +11,25 @@ from .connection import (
 from typing import List, Optional
 
 
-class AppleCsvConnection(Connection):
-    def __init__(self, csv_path: str):
+class CsvConnection(Connection, ABC):
+    def __init__(self, csv_path: str, account_name: str, csv_reader: CsvReader):
         self._csv_path = csv_path
+        self._account_name = account_name
+        self._csv_reader = csv_reader
 
     def get_account_balances(self) -> List[AccountBalance]:
-        return [AccountBalance(account_name="apple", account_id="apple", balance=0)]
+        return [
+            AccountBalance(
+                account_name=self._account_name,
+                account_id=self._account_name,
+                balance=0,
+            )
+        ]
 
     def sync_transactions(
         self, sync_cursor: Optional[CsvSyncCursor] = None
     ) -> SyncTransactionsResponse:
-        # f"https://global.americanexpress.com/spending-report/custom?from={start_date}&to={end_date}"
-        df = pd.read_csv(self._csv_path)
-        df["category"] = df["Category"]
-        df["date"] = pd.to_datetime(df["Transaction Date"]).dt.date
-        df["description"] = df["Description"]
-        df["amount"] = df["Amount (USD)"].abs()
-        df["type"] = (
-            df["Type"].replace("Purchase", "debit").replace("Payment", "credit")
-        )
-        df = df[["date", "description", "category", "amount", "type"]]
+        df = self._csv_reader.read_csv(self._csv_path)
 
         if sync_cursor is not None:
             df = df[df["date"] > sync_cursor.latest_transaction_date]
@@ -56,3 +56,13 @@ class AppleCsvConnection(Connection):
                 latest_transaction_date=latest_transaction_date.isoformat()
             ),
         )
+
+
+class AmexCsvConnection(CsvConnection):
+    def __init__(self, csv_path: str):
+        super().__init__(csv_path, "amex", AmexCsvReader)
+
+
+class AppleCsvConnection(CsvConnection):
+    def __init__(self, csv_path: str):
+        super().__init__(csv_path, "apple", AppleCsvReader)

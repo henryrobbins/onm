@@ -1,8 +1,7 @@
-from onm.connection.apple_csv_connection import AppleCsvConnection
 from ..common import SourceType
 from .connection import Connection
 from .plaid_connection import PlaidConnection
-from .amex_csv_connection import AmexCsvConnection
+from onm.connection.csv_connection import AppleCsvConnection, AmexCsvConnection
 from plaid.api.plaid_api import PlaidApi
 from typing import Optional
 

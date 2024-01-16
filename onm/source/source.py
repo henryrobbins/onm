@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, NamedTuple, Optional, Type
+from typing import List, NamedTuple, Optional
 from ..common import Transaction, Account, SourceType
 from ..sync import SyncCursor
-from plaid.api.plaid_api import PlaidApi
-from ..link.link_factory import LinkFactory
 from ..connection.connection import Connection
 
 
@@ -32,12 +30,4 @@ class Source(ABC):
     def sync_transactions(
         self, connection: Connection, sync_cursor: Optional[SyncCursor]
     ) -> SyncTransactionsResponse:
-        pass
-
-    @abstractmethod
-    def update_link(
-        self,
-        link_factory: Type[LinkFactory] = LinkFactory,
-        plaid_api: Optional[PlaidApi] = None,
-    ) -> None:
         pass
