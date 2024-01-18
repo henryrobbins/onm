@@ -20,7 +20,8 @@ class Transaction(NamedTuple):
     date: date
     description: str
     amount: float
-    category: str
+    primary_category: str
+    detailed_category: str
     account_id: str
     type: TransactionType
 

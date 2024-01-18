@@ -137,7 +137,9 @@ def plaid_api_mock():
     plaid_api.accounts_balance_get.side_effect = accounts_balance_get_side_effect
 
     personal_finance_category = Mock(PersonalFinanceCategory)
-    personal_finance_category.configure_mock(primary="ENTERTAINMENT", detailed="MUSIC")
+    personal_finance_category.configure_mock(
+        primary="ENTERTAINMENT", detailed="ENTERTAINMENT_MUSIC_AND_AUDIO"
+    )
 
     transaction = Mock(Transaction)
     transaction.configure_mock(
@@ -188,5 +190,6 @@ def test_plaid_connection_get_new_transactions(plaid_api_mock):
     assert "TOMI JAZZ" == transaction.description
     assert 78.9 == transaction.amount
     assert TransactionType.DEBIT == transaction.type
-    assert "ENTERTAINMENT:MUSIC" == transaction.category
+    assert "ENTERTAINMENT" == transaction.primary_category
+    assert "ENTERTAINMENT_MUSIC_AND_AUDIO" == transaction.detailed_category
     assert "bc3eb2e652219571d5897b8422869388" == transaction.account_id

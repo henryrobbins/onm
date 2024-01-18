@@ -44,7 +44,8 @@ class CsvConnection(Connection, ABC):
                     date=row["date"],
                     description=row["description"],
                     amount=row["amount"],
-                    category=row["category"],
+                    primary_category=row["primary_category"],
+                    detailed_category=row["detailed_category"],
                     account_id="apple",
                     type=TransactionType(row["type"]),
                 )

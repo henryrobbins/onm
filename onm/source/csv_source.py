@@ -1,15 +1,21 @@
 from abc import ABC
 from onm.common import Account, Transaction, TransactionType
+from onm.category import (
+    APPLE_ONM_CATEGORY_MAPPING,
+    AMEX_ONM_CATEGORY_MAPPING,
+    get_onm_category,
+)
 from onm.sync import SyncCursor
 from onm.connection import connection
 from onm.connection.connection import Connection
 from onm.source.source import SourceType, Source, SyncTransactionsResponse
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 class CsvSource(Source, ABC):
-    def __init__(self, name: str):
+    def __init__(self, name: str, category_mapping: Dict[str, str]):
         super().__init__(name)
+        self._category_mapping = category_mapping
 
     def get_account_balances(self, connection: Connection) -> List[Account]:
         balances = connection.get_account_balances()
@@ -33,14 +39,16 @@ class CsvSource(Source, ABC):
             description=t.description,
             amount=t.amount,
             account_name=self._name,
-            category=t.category,
+            category=get_onm_category(
+                t.primary_category, t.detailed_category, self._category_mapping
+            ),
             type=TransactionType(t.type.value),
         )
 
 
 class AppleCsvSource(CsvSource):
     def __init__(self, name: str):
-        super().__init__(name)
+        super().__init__(name, APPLE_ONM_CATEGORY_MAPPING)
 
     @property
     def type(self) -> str:
@@ -49,7 +57,7 @@ class AppleCsvSource(CsvSource):
 
 class AmexCsvSource(CsvSource):
     def __init__(self, name: str):
-        super().__init__(name)
+        super().__init__(name, AMEX_ONM_CATEGORY_MAPPING)
 
     @property
     def type(self) -> str:

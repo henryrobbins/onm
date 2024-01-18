@@ -54,9 +54,15 @@ class PlaidSource(Source):
             description=t.description,
             amount=t.amount,
             account_name=self._account_id_map[t.account_id],
-            category=t.category,
+            category=self._onm_category_from_plaid(
+                t.primary_category, t.detailed_category
+            ),
             type=TransactionType(t.type.value),
         )
+
+    @staticmethod
+    def _onm_category_from_plaid(primary: str, detailed: str) -> str:
+        return f"{primary}:{detailed[len(primary) + 1: len(detailed)]}"
 
     def update_link(
         self, link_factory: Type[LinkFactory] = LinkFactory, plaid_api: PlaidApi = None

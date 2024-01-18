@@ -35,7 +35,8 @@ def plaid_connection_mock():
         date=datetime(2024, 1, 13).date(),
         description="TOMI JAZZ",
         amount=89.3,
-        category="MUSIC",
+        primary_category="ENTERTAINMENT",
+        detailed_category="ENTERTAINMENT_MUSIC_AND_AUDIO",
         account_id="e02fc823810d73a9127d00948ab000d4",
         type=connection.TransactionType.DEBIT,
     )
@@ -73,6 +74,6 @@ def test_plaid_source(plaid_connection_mock):
     assert datetime(2024, 1, 13).date() == transaction.date
     assert "TOMI JAZZ" == transaction.description
     assert 89.3 == transaction.amount
-    assert "MUSIC" == transaction.category
+    assert "ENTERTAINMENT:MUSIC_AND_AUDIO" == transaction.category
     assert "ONM CHECKING" == transaction.account_name
     assert TransactionType.DEBIT == transaction.type

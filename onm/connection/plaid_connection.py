@@ -1,7 +1,6 @@
 from plaid import ApiClient, Configuration, Environment
 from plaid.model import transaction
 from plaid.api.plaid_api import PlaidApi
-from plaid.model.personal_finance_category import PersonalFinanceCategory
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from .connection import (
@@ -91,10 +90,7 @@ def _parse_plaid_transaction(transaction: transaction.Transaction) -> Transactio
         description=transaction.name,
         amount=amount,
         type=type,
-        category=_parse_plaid_category(transaction.personal_finance_category),
+        primary_category=transaction.personal_finance_category.primary,
+        detailed_category=transaction.personal_finance_category.detailed,
         account_id=transaction.account_id,
     )
-
-
-def _parse_plaid_category(plaid_category: PersonalFinanceCategory) -> str:
-    return f"{plaid_category.primary}:{plaid_category.detailed}"
