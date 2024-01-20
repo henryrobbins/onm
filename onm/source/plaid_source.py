@@ -1,11 +1,11 @@
 from onm.common import Account, Transaction, TransactionType, SourceType
 from onm.link.link_factory import LinkFactory
 from ..connection import connection
+from onm.config import Config
 from ..connection.plaid_connection import PlaidConnection
 from ..sync import PlaidSyncCursor
 from .source import Source, SyncTransactionsResponse
-from plaid.api.plaid_api import PlaidApi
-from typing import List, Dict, Type
+from typing import List, Dict
 
 
 class PlaidSource(Source):
@@ -64,10 +64,8 @@ class PlaidSource(Source):
     def _onm_category_from_plaid(primary: str, detailed: str) -> str:
         return f"{primary}:{detailed[len(primary) + 1: len(detailed)]}"
 
-    def update_link(
-        self, link_factory: Type[LinkFactory] = LinkFactory, plaid_api: PlaidApi = None
-    ) -> None:
-        link = link_factory.create_link(SourceType.PLAID, plaid_api=plaid_api)
+    def update_link(self, config: Config) -> None:
+        link = LinkFactory.create_link(SourceType.PLAID, config)
         link.update_link(self.access_token)
 
 

@@ -1,7 +1,7 @@
 import os
 import shutil
 import pytest
-from unittest.mock import Mock
+from mock import patch
 from plaid.api.plaid_api import PlaidApi
 from plaid.model.products import Products
 from plaid.model.item_public_token_exchange_request import (
@@ -12,7 +12,6 @@ from plaid.model.sandbox_public_token_create_request import (
 )
 from onm import main
 from onm.database.database_factory import DatabaseFactory
-from onm.link.link_factory import LinkFactory
 from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import (
     PlaidConfiguration,
@@ -78,17 +77,16 @@ def config(client_id: str, secret: str) -> Config:
 
 
 def test_plaid_end_to_end(config: Config):
-    link_factory_mock = Mock(LinkFactory)
     plaid_api = get_plaid_api(config.get_plaid_config())
-    link_factory_mock.create_link.return_value = PlaidLinkMock(plaid_api)
+    plaid_link_mock = PlaidLinkMock(plaid_api)
 
-    main.add_source(
-        type=SourceType.PLAID,
-        name="test",
-        config=config,
-        link_factory=link_factory_mock,
-    )
-    main.update_source("test", config, link_factory=link_factory_mock)
+    with patch(
+        "onm.source.source_factory.LinkFactory.create_link",
+        return_value=plaid_link_mock,
+    ):
+        main.add_source(type=SourceType.PLAID, name="test", config=config)
+        main.update_source("test", config)
+
     main.sync_source("test", config)
 
     database_config = config.get_database_config()
