@@ -28,15 +28,15 @@ def add_source(
         connection_factory=connection_factory,
         plaid_api=plaid_api,
     )
-    sources = config.get_sources()
-    sources.add_source(source)
+    database = config.get_database()
+    database.add_source(source)
 
 
 def update_source(
     name: str, config: Config, link_factory: Type[LinkFactory] = LinkFactory
 ) -> None:
-    sources = config.get_sources()
-    source = sources.get_source(name)
+    database = config.get_database()
+    source = database.get_source(name)
     if source.type is not SourceType.PLAID:
         # TODO: Any warning? Perhaps in verbose mode?
         return
@@ -52,8 +52,7 @@ def sync_source(
     csv_path: str = None,
 ) -> None:
     database = config.get_database()
-    sources = config.get_sources()
-    source = sources.get_source(name)
+    source = database.get_source(name)
     # TODO: Is this the right place for this? global config?
     if source.type is SourceType.PLAID:
         plaid_config = config.get_plaid_config()

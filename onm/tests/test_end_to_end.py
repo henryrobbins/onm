@@ -24,8 +24,7 @@ pytestmark = pytest.mark.integration
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
 CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.ini")
-TEST_SOURCES_PATH = os.path.join(RESOURCES_PATH, "test_sources.ini")
-TEST_DATABASE_PATH = os.path.join(RESOURCES_PATH, "test_csv_database")
+TEST_DATABASE_PATH = os.path.join(RESOURCES_PATH, "test_plain_text_database")
 AMEX_CSV_PATH = os.path.join(RESOURCES_PATH, "amex.csv")
 APPLE_CSV_PATH = os.path.join(RESOURCES_PATH, "apple.csv")
 
@@ -73,8 +72,6 @@ def config(client_id: str, secret: str) -> Config:
     )
     config = ConfigMock(CONFIG_PATH, plaid_configuration)
     yield config
-    if os.path.exists(TEST_SOURCES_PATH):
-        os.remove(TEST_SOURCES_PATH)
     if os.path.exists(TEST_DATABASE_PATH):
         shutil.rmtree(TEST_DATABASE_PATH, ignore_errors=True)
 

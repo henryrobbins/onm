@@ -1,6 +1,5 @@
 import os
 from configparser import ConfigParser, NoSectionError
-from .sources import Sources
 from .database.database import Database, DatabaseType
 from .database.database_factory import DatabaseFactory
 from .connection.plaid_connection import PlaidConfiguration
@@ -10,7 +9,6 @@ import pkg_resources
 ONM_CONFIG_PATH = os.path.expanduser("~/.config/onm/config.ini")
 
 ONM_SECTION = "onm"
-SOURCES_PATH = "sources_path"
 DATABASE_TYPE = "db_type"
 
 DATABASE_SECTION = "database"
@@ -50,14 +48,6 @@ class Config:
             database_type = DatabaseType(DEFAULT_CONFIG[ONM_SECTION][DATABASE_TYPE])
             kwargs = DEFAULT_CONFIG[DATABASE_SECTION]
         return DatabaseFactory.create_database(database_type, **kwargs)
-
-    def get_sources(self) -> Sources:
-        try:
-            sources_path = os.path.expanduser(self.config[ONM_SECTION][SOURCES_PATH])
-        except (NoSectionError, KeyError):
-            # TODO: some warning falling back (maybe in verbose mode)
-            sources_path = os.path.expanduser(DEFAULT_CONFIG[ONM_SECTION][SOURCES_PATH])
-        return Sources(sources_path)
 
     def update(self):
         with open(self.config_path, "w+") as f:

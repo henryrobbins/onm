@@ -9,7 +9,7 @@ from onm.common import Account
 from .config import Config
 
 
-from .constants import MINT_CATEGORY_MAP
+from .category import MINT_CATEGORY_MAP
 
 # TODO: Check more than one place for config file
 ONM_CONFIG_PATH = "~/.config/onm/config"

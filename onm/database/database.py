@@ -7,7 +7,7 @@ from typing import List, Optional
 
 
 class DatabaseType(Enum):
-    CSV = "csv"
+    PLAIN_TEXT = "plain_text"
 
 
 class Database(ABC):
@@ -41,4 +41,12 @@ class Database(ABC):
 
     @abstractmethod
     def get_sync_cursor(self, source: Source) -> Optional[SyncCursor]:
+        pass
+
+    @abstractmethod
+    def add_source(self, source: Source):
+        pass
+
+    @abstractmethod
+    def get_source(self, name: str) -> Source:
         pass

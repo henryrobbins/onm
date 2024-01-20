@@ -1,16 +1,20 @@
 import os
 import json
+import tomlkit
 import pandas as pd
 from datetime import datetime
 from onm.source.source import Source
+from onm.source.plaid_source import PlaidSource
+from onm.source.csv_source import AppleCsvSource, AmexCsvSource
 from onm.sync import SyncCursor, create_sync_cursor, get_sync_cursor_type_from
 from .database import Database
-from ..common import Account, TransactionType, Transaction
-from typing import List, Dict
+from onm.common import SourceType, Account, TransactionType, Transaction
+from typing import List, Dict, Optional
 
 ACCOUNTS = "accounts.csv"
 TRANSACTIONS = "transactions.csv"
 CURSORS = "cursors.csv"
+SOURCES = "sources.toml"
 
 ACCOUNT_DF_COLUMNS = ["name", "balance"]
 TRANSACTIONS_DF_COLUMNS = [
@@ -25,28 +29,61 @@ CURSOR_TYPE = "type"
 CURSOR_DATA = "data"
 CURSORS_DF_COLUMNS = [CURSOR_TYPE, CURSOR_DATA]
 
+SOURCE_TYPE = "type"
+ACCESS_TOKEN = "access_token"
+ACCOUNT_ID_MAP = "account_id_map"
+
 DATE_FMT = r"%Y-%m-%d"
 
 
-class CsvDatabase(Database):
-    def __init__(self, database_path: str):
-        self._accounts_path = os.path.join(database_path, ACCOUNTS)
+class PlainTextDatabase(Database):
+    def __init__(
+        self,
+        database_path: str,
+        accounts_path: str = None,
+        transactions_path: str = None,
+        cursors_path: str = None,
+        sources_path: str = None,
+    ):
+        self._accounts_path = PlainTextDatabase._setup_path(
+            database_path, ACCOUNTS, accounts_path
+        )
         if not os.path.exists(self._accounts_path):
             os.makedirs(os.path.dirname(self._accounts_path), exist_ok=True)
             accounts_df = pd.DataFrame(columns=ACCOUNT_DF_COLUMNS)
             self._write_accounts_update(accounts_df)
 
-        self._transactions_path = os.path.join(database_path, TRANSACTIONS)
+        self._transactions_path = PlainTextDatabase._setup_path(
+            database_path, TRANSACTIONS, transactions_path
+        )
         if not os.path.exists(self._transactions_path):
             os.makedirs(os.path.dirname(self._transactions_path), exist_ok=True)
             transactions_df = pd.DataFrame(columns=TRANSACTIONS_DF_COLUMNS)
             self._write_transactions_update(transactions_df)
 
-        self._cursors_path = os.path.join(database_path, CURSORS)
+        self._cursors_path = PlainTextDatabase._setup_path(
+            database_path, CURSORS, cursors_path
+        )
         if not os.path.exists(self._cursors_path):
             os.makedirs(os.path.dirname(self._cursors_path), exist_ok=True)
             cursors_df = pd.DataFrame(columns=CURSORS_DF_COLUMNS)
             cursors_df.to_csv(self._cursors_path)
+
+        self._sources_path = PlainTextDatabase._setup_path(
+            database_path, SOURCES, sources_path
+        )
+        if not os.path.exists(self._sources_path):
+            os.makedirs(os.path.dirname(self._sources_path), exist_ok=True)
+            with open(self._sources_path, "w") as _:
+                pass
+
+    @staticmethod
+    def _setup_path(
+        database_path: str, default_filename: str, override_path: Optional[str]
+    ) -> str:
+        if override_path is not None:
+            return override_path
+        return os.path.join(database_path, default_filename)
 
     def add_account(self, account: Account):
         accounts_df = self._read_accounts()
@@ -121,6 +158,73 @@ class CsvDatabase(Database):
             }
         cursors_df = pd.DataFrame.from_dict(cursors_dict, orient="index")
         cursors_df.to_csv(self._cursors_path)
+
+    def add_source(self, source: Source):
+        sources_config = self._read_sources()
+        if source.type == SourceType.PLAID:
+            self._add_plaid_source(source, sources_config)
+        elif source.type == SourceType.AMEX_CSV:
+            self._add_csv_source(source, sources_config)
+        elif source.type == SourceType.APPLE_CSV:
+            self._add_csv_source(source, sources_config)
+        else:
+            raise ValueError("Unsupported source")
+        self._write_sources_update(sources_config)
+
+    def _add_plaid_source(
+        self, source: PlaidSource, sources_config: tomlkit.TOMLDocument
+    ):
+        source_config = tomlkit.table()
+        source_config.add(SOURCE_TYPE, source.type.value)
+        source_config.add(ACCESS_TOKEN, source.access_token)
+        accounts = tomlkit.array()
+        ts = []
+        for account_id, account_name in source.account_id_map.items():
+            t = tomlkit.inline_table()
+            t.add("id", account_id)
+            t.add("name", account_name)
+            ts.append(t)
+        accounts.extend(ts)
+        source_config.add(ACCOUNT_ID_MAP, accounts.multiline(True))
+        sources_config.add(source.name, source_config)
+
+    def _add_csv_source(self, source: Source, sources_config: tomlkit.TOMLDocument):
+        source_config = tomlkit.table()
+        source_config.add(SOURCE_TYPE, source.type.value)
+        sources_config.add(source.name, source_config)
+
+    def get_source(self, name: str) -> Source:
+        # if not self._config.has_section(name):
+        #     raise ValueError(f"Source '{name}' does not exist")
+        sources_config = self._read_sources()
+        source_config = sources_config.get(name)
+        source_type = SourceType(source_config.get(SOURCE_TYPE))
+        if source_type == SourceType.PLAID:
+            return self._get_plaid_source(name, source_config)
+        elif source_type == SourceType.AMEX_CSV:
+            return AmexCsvSource(name)
+        elif source_type == SourceType.APPLE_CSV:
+            return AppleCsvSource(name)
+        else:
+            raise ValueError("Unsupported source")
+
+    def _get_plaid_source(self, name: str, source_config: Dict) -> PlaidSource:
+        account_id_map = {}
+        for account in source_config.get(ACCOUNT_ID_MAP):
+            account_id_map[account.get("id")] = account.get("name")
+        return PlaidSource(
+            name=name,
+            access_token=source_config.get(ACCESS_TOKEN),
+            account_id_map=account_id_map,
+        )
+
+    def _read_sources(self) -> tomlkit.TOMLDocument:
+        with open(self._sources_path, mode="rt", encoding="utf-8") as fp:
+            return tomlkit.load(fp)
+
+    def _write_sources_update(self, sources_config: tomlkit.TOMLDocument):
+        with open(self._sources_path, mode="wt", encoding="utf-8") as fp:
+            tomlkit.dump(sources_config, fp)
 
 
 def _transaction_dict(transaction: Transaction) -> Dict:
