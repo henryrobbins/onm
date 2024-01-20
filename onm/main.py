@@ -4,6 +4,7 @@ from onm.link.link_factory import LinkFactory
 from onm.source.source_factory import SourceFactory
 from onm.connection.connection_factory import ConnectionFactory
 from onm.connection.plaid_connection import get_plaid_api
+from onm.database.database_factory import DatabaseFactory
 from typing import Type
 
 
@@ -28,14 +29,16 @@ def add_source(
         connection_factory=connection_factory,
         plaid_api=plaid_api,
     )
-    database = config.get_database()
+    database_config = config.get_database_config()
+    database = DatabaseFactory.create_database(database_config)
     database.add_source(source)
 
 
 def update_source(
     name: str, config: Config, link_factory: Type[LinkFactory] = LinkFactory
 ) -> None:
-    database = config.get_database()
+    database_config = config.get_database_config()
+    database = DatabaseFactory.create_database(database_config)
     source = database.get_source(name)
     if source.type is not SourceType.PLAID:
         # TODO: Any warning? Perhaps in verbose mode?
@@ -51,7 +54,8 @@ def sync_source(
     connection_factory: Type[ConnectionFactory] = ConnectionFactory,
     csv_path: str = None,
 ) -> None:
-    database = config.get_database()
+    database_config = config.get_database_config()
+    database = DatabaseFactory.create_database(database_config)
     source = database.get_source(name)
     # TODO: Is this the right place for this? global config?
     if source.type is SourceType.PLAID:

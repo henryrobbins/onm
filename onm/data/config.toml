@@ -1,0 +1,10 @@
+[onm]
+database_type = "plain_text"
+
+[plaid]
+client_id = "<client_id>"
+secret = "<secret>"
+environment = "sandbox"
+
+[database]
+database_path = "~/onm/database"

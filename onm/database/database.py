@@ -3,11 +3,16 @@ from abc import ABC, abstractmethod
 from ..common import Account, Transaction
 from ..sync import SyncCursor
 from ..source.source import Source
-from typing import List, Optional
+from typing import NamedTuple, List, Optional, Dict, Any
 
 
 class DatabaseType(Enum):
     PLAIN_TEXT = "plain_text"
+
+
+class DatabaseConfiguration(NamedTuple):
+    type: DatabaseType
+    parameters: Dict[str, Any]
 
 
 class Database(ABC):

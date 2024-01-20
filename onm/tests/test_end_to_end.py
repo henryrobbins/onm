@@ -11,6 +11,7 @@ from plaid.model.sandbox_public_token_create_request import (
     SandboxPublicTokenCreateRequest,
 )
 from onm import main
+from onm.database.database_factory import DatabaseFactory
 from onm.link.link_factory import LinkFactory
 from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import (
@@ -23,7 +24,7 @@ from onm.config import Config
 pytestmark = pytest.mark.integration
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
-CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.ini")
+CONFIG_PATH = os.path.join(RESOURCES_PATH, "config.toml")
 TEST_DATABASE_PATH = os.path.join(RESOURCES_PATH, "test_plain_text_database")
 AMEX_CSV_PATH = os.path.join(RESOURCES_PATH, "amex.csv")
 APPLE_CSV_PATH = os.path.join(RESOURCES_PATH, "apple.csv")
@@ -76,7 +77,7 @@ def config(client_id: str, secret: str) -> Config:
         shutil.rmtree(TEST_DATABASE_PATH, ignore_errors=True)
 
 
-def test_plaid_end_to_end(config):
+def test_plaid_end_to_end(config: Config):
     link_factory_mock = Mock(LinkFactory)
     plaid_api = get_plaid_api(config.get_plaid_config())
     link_factory_mock.create_link.return_value = PlaidLinkMock(plaid_api)
@@ -90,7 +91,8 @@ def test_plaid_end_to_end(config):
     main.update_source("test", config, link_factory=link_factory_mock)
     main.sync_source("test", config)
 
-    database = config.get_database()
+    database_config = config.get_database_config()
+    database = DatabaseFactory.create_database(database_config)
     transactions = database.get_transactions()
     accounts = database.get_accounts()
     assert len(transactions) > 0
@@ -104,12 +106,13 @@ def test_plaid_end_to_end(config):
     # TODO: Add more assertions
 
 
-def test_amex_csv_end_to_end(config):
+def test_amex_csv_end_to_end(config: Config):
     main.add_source(type=SourceType.AMEX_CSV, name="amex", config=config)
     main.update_source("amex", config)
     main.sync_source("amex", config, csv_path=AMEX_CSV_PATH)
 
-    database = config.get_database()
+    database_config = config.get_database_config()
+    database = DatabaseFactory.create_database(database_config)
     transactions = database.get_transactions()
     accounts = database.get_accounts()
     assert 3 == len(transactions)
@@ -123,12 +126,13 @@ def test_amex_csv_end_to_end(config):
     # TODO: Add more assertions
 
 
-def test_apple_csv_end_to_end(config):
+def test_apple_csv_end_to_end(config: Config):
     main.add_source(type=SourceType.APPLE_CSV, name="apple", config=config)
     main.update_source("apple", config)
     main.sync_source("apple", config, csv_path=APPLE_CSV_PATH)
 
-    database = config.get_database()
+    database_config = config.get_database_config()
+    database = DatabaseFactory.create_database(database_config)
     transactions = database.get_transactions()
     accounts = database.get_accounts()
     assert 5 == len(transactions)
