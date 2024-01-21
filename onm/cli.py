@@ -1,15 +1,17 @@
 import os
 import re
+from typing import Optional
 import click
 import tempfile
 import subprocess
 import pandas as pd
 
-from onm.common import Account
+from onm import main
+from onm.common import Account, SourceType
 from .config import Config
 
 
-from .category import MINT_CATEGORY_MAP
+from onm.category import MINT_ONM_CATEGORY_MAPPING
 
 # TODO: Check more than one place for config file
 ONM_CONFIG_PATH = "~/.config/onm/config"
@@ -35,7 +37,7 @@ def import_mint_data(mint_export_path):
 
     df = df[df["Account Name"].isin(selected_accounts)]
     df["account"] = df["Account Name"].apply(lambda x: selected_accounts[x])
-    df["category"] = df["Category"].apply(lambda x: MINT_CATEGORY_MAP[x])
+    df["category"] = df["Category"].apply(lambda x: MINT_ONM_CATEGORY_MAPPING[x])
     df["date"] = pd.to_datetime(df["Date"]).dt.date
     df["description"] = df["Description"]
     df["amount"] = df["Amount"]
@@ -77,17 +79,25 @@ def _editor_account_selection(account_names):
 
 
 @cli.command()
-@click.option("-c", "--config", help="Configuration file")
-def link_item(config):
-    """Link an item via Plaid."""
-    raise NotImplementedError
+@click.option("-n", "--name", required=True, type=str, help="Name of source")
+@click.option("-t", "--type", required=True, type=str, help="Type of source")
+@click.option("-c", "--config", type=click.Path(exists=True), help="Configuration file")
+def add_source(type: str, name: str, config: Optional[str] = None):
+    main.add_source(SourceType(type), name, Config(config))
 
 
 @cli.command()
-@click.argument("account_name", type=str)
-def sync_account(account_name: str):
-    """Sync account"""
-    raise NotImplementedError
+@click.option("-n", "--name", required=True, type=str, help="Name of source")
+@click.option("-c", "--config", type=click.Path(exists=True), help="Configuration file")
+def update_source(name: str, config: Optional[str] = None):
+    main.update_source(name, Config(config))
+
+
+@cli.command()
+@click.option("-n", "--name", required=True, type=str, help="Name of source")
+@click.option("-c", "--config", type=click.Path(exists=True), help="Configuration file")
+def sync_source(name: str, config: Optional[str] = None):
+    main.sync_source(name, Config(config))
 
 
 if __name__ == "__main__":

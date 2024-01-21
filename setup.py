@@ -19,7 +19,7 @@ setuptools.setup(
     classifiers=[],
     entry_points={
         "console_scripts": [
-            "onm = onm.main:cli",
+            "onm = onm.cli:cli",
         ],
     },
     install_requires=["pandas", "plaid-python", "tomlkit"],
