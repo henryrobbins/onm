@@ -1,6 +1,8 @@
 import os
 import json
 import tomlkit
+import shlex
+import subprocess
 from tomlkit.items import InlineTable, Table, Array
 import pandas as pd
 from datetime import datetime
@@ -206,6 +208,16 @@ def _from_toml(value: Any) -> Any:
     elif isinstance(value, Array):
         return [_from_toml(e) for e in value]
     elif isinstance(value, str):
+        if value[0:2] == "$ ":
+            command = shlex.split(value[2:])
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            return result.stdout.replace("\n", "")
         return value
     else:
         raise ValueError(f"Unsupported type: {type(value)}")
