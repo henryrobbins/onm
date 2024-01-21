@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC
 from onm.common import Account, Transaction, TransactionType
 from onm.category import (
@@ -54,6 +55,13 @@ class AppleCsvSource(CsvSource):
     def type(self) -> str:
         return SourceType.APPLE_CSV
 
+    def serialize(self) -> Dict:
+        return {"type": SourceType.APPLE_CSV.value, "name": self.name}
+
+    @staticmethod
+    def deserialize(data: Dict) -> AppleCsvSource:
+        return AppleCsvSource(name=data["name"])
+
 
 class AmexCsvSource(CsvSource):
     def __init__(self, name: str):
@@ -62,3 +70,10 @@ class AmexCsvSource(CsvSource):
     @property
     def type(self) -> str:
         return SourceType.AMEX_CSV
+
+    def serialize(self) -> Dict:
+        return {"type": SourceType.AMEX_CSV.value, "name": self.name}
+
+    @staticmethod
+    def deserialize(data: Dict) -> AmexCsvSource:
+        return AmexCsvSource(name=data["name"])

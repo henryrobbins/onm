@@ -1,15 +1,15 @@
 import os
 import json
 import tomlkit
+from tomlkit.items import InlineTable, Table, Array
 import pandas as pd
 from datetime import datetime
 from onm.source.source import Source
-from onm.source.plaid_source import PlaidSource
-from onm.source.csv_source import AppleCsvSource, AmexCsvSource
+from onm.source.source_factory import SourceFactory
 from onm.sync import SyncCursor, create_sync_cursor, get_sync_cursor_type_from
 from .database import Database
-from onm.common import SourceType, Account, TransactionType, Transaction
-from typing import List, Dict, Optional
+from onm.common import Account, TransactionType, Transaction
+from typing import Any, List, Dict, Optional
 
 ACCOUNTS = "accounts.csv"
 TRANSACTIONS = "transactions.csv"
@@ -161,62 +161,18 @@ class PlainTextDatabase(Database):
 
     def add_source(self, source: Source):
         sources_config = self._read_sources()
-        if source.type == SourceType.PLAID:
-            self._add_plaid_source(source, sources_config)
-        elif source.type == SourceType.AMEX_CSV:
-            self._add_csv_source(source, sources_config)
-        elif source.type == SourceType.APPLE_CSV:
-            self._add_csv_source(source, sources_config)
-        else:
-            raise ValueError("Unsupported source")
+        source_dict = source.serialize()
+        source_name = source_dict.pop("name")
+        sources_config.add(source_name, _to_toml(source_dict))
         self._write_sources_update(sources_config)
 
-    def _add_plaid_source(
-        self, source: PlaidSource, sources_config: tomlkit.TOMLDocument
-    ):
-        source_config = tomlkit.table()
-        source_config.add(SOURCE_TYPE, source.type.value)
-        source_config.add(ACCESS_TOKEN, source.access_token)
-        accounts = tomlkit.array()
-        ts = []
-        for account_id, account_name in source.account_id_map.items():
-            t = tomlkit.inline_table()
-            t.add("id", account_id)
-            t.add("name", account_name)
-            ts.append(t)
-        accounts.extend(ts)
-        source_config.add(ACCOUNT_ID_MAP, accounts.multiline(True))
-        sources_config.add(source.name, source_config)
-
-    def _add_csv_source(self, source: Source, sources_config: tomlkit.TOMLDocument):
-        source_config = tomlkit.table()
-        source_config.add(SOURCE_TYPE, source.type.value)
-        sources_config.add(source.name, source_config)
-
     def get_source(self, name: str) -> Source:
-        # if not self._config.has_section(name):
-        #     raise ValueError(f"Source '{name}' does not exist")
+        # TODO: error handling
         sources_config = self._read_sources()
         source_config = sources_config.get(name)
-        source_type = SourceType(source_config.get(SOURCE_TYPE))
-        if source_type == SourceType.PLAID:
-            return self._get_plaid_source(name, source_config)
-        elif source_type == SourceType.AMEX_CSV:
-            return AmexCsvSource(name)
-        elif source_type == SourceType.APPLE_CSV:
-            return AppleCsvSource(name)
-        else:
-            raise ValueError("Unsupported source")
-
-    def _get_plaid_source(self, name: str, source_config: Dict) -> PlaidSource:
-        account_id_map = {}
-        for account in source_config.get(ACCOUNT_ID_MAP):
-            account_id_map[account.get("id")] = account.get("name")
-        return PlaidSource(
-            name=name,
-            access_token=source_config.get(ACCESS_TOKEN),
-            account_id_map=account_id_map,
-        )
+        source_dict = _from_toml(source_config)
+        source_dict["name"] = name
+        return SourceFactory.deserialize(source_dict)
 
     def _read_sources(self) -> tomlkit.TOMLDocument:
         with open(self._sources_path, mode="rt", encoding="utf-8") as fp:
@@ -225,6 +181,34 @@ class PlainTextDatabase(Database):
     def _write_sources_update(self, sources_config: tomlkit.TOMLDocument):
         with open(self._sources_path, mode="wt", encoding="utf-8") as fp:
             tomlkit.dump(sources_config, fp)
+
+
+def _to_toml(value: Any, inline=False) -> Any:
+    if isinstance(value, dict):
+        table = tomlkit.inline_table() if inline else tomlkit.table()
+        for key, value in value.items():
+            table.add(key, _to_toml(value, inline=True))
+        return table
+    elif isinstance(value, list):
+        array = tomlkit.array()
+        items = [_to_toml(e, inline=True) for e in value]
+        array.extend(items)
+        return array.multiline(True)
+    elif isinstance(value, str):
+        return value
+    else:
+        raise ValueError(f"Unsupported type: {type(value)}")
+
+
+def _from_toml(value: Any) -> Any:
+    if isinstance(value, (InlineTable, Table)):
+        return {k: _from_toml(v) for k, v in value.items()}
+    elif isinstance(value, Array):
+        return [_from_toml(e) for e in value]
+    elif isinstance(value, str):
+        return value
+    else:
+        raise ValueError(f"Unsupported type: {type(value)}")
 
 
 def _transaction_dict(transaction: Transaction) -> Dict:

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from onm.common import Account, Transaction, TransactionType, SourceType
 from onm.link.link_factory import LinkFactory
 from ..connection import connection
@@ -67,6 +68,22 @@ class PlaidSource(Source):
     def update_link(self, config: Config) -> None:
         link = LinkFactory.create_link(SourceType.PLAID, config)
         link.update_link(self.access_token)
+
+    def serialize(self) -> Dict:
+        return {
+            "type": SourceType.PLAID.value,
+            "name": self.name,
+            "access_token": self.access_token,
+            "accounts": [{"id": k, "name": v} for k, v in self.account_id_map.items()],
+        }
+
+    @staticmethod
+    def deserialize(data: Dict) -> PlaidSource:
+        return PlaidSource(
+            name=data["name"],
+            access_token=data["access_token"],
+            account_id_map={a["id"]: a["name"] for a in data["accounts"]},
+        )
 
 
 class PlaidSourceBuilder:
