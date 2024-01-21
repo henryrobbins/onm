@@ -82,8 +82,8 @@ class PlainTextDatabase(Database):
         database_path: str, default_filename: str, override_path: Optional[str]
     ) -> str:
         if override_path is not None:
-            return override_path
-        return os.path.join(database_path, default_filename)
+            return os.path.expanduser(override_path)
+        return os.path.join(os.path.expanduser(database_path), default_filename)
 
     def add_account(self, account: Account):
         accounts_df = self._read_accounts()

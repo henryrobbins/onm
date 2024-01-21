@@ -5,7 +5,7 @@ from .connection.plaid_connection import PlaidConfiguration
 import pkg_resources
 
 # TODO: Check more than one place for config file
-ONM_CONFIG_PATH = os.path.expanduser("~/.config/onm/config.toml")
+ONM_CONFIG_PATH = "~/.config/onm/config.toml"
 
 ONM_SECTION = "onm"
 DATABASE_TYPE = "database_type"
@@ -26,7 +26,7 @@ with open(DEFAULT_CONFIG_PATH, mode="rt", encoding="utf-8") as fp:
 
 class Config:
     def __init__(self, config_path: str = None):
-        self._config_path = config_path or ONM_CONFIG_PATH
+        self._config_path = os.path.expanduser(config_path or ONM_CONFIG_PATH)
         with open(self._config_path, mode="rt", encoding="utf-8") as fp:
             self._config = tomlkit.load(fp)
 
