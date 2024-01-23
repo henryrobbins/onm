@@ -13,8 +13,8 @@ from .database import Database
 from onm.common import Account, AccountType, TransactionType, Transaction
 from typing import Any, List, Dict, Optional
 
-ACCOUNTS = "accounts.csv"
-TRANSACTIONS = "transactions.csv"
+ACCOUNTS = "accounts"
+TRANSACTIONS = "transactions"
 CURSORS = "cursors.csv"
 SOURCES = "sources.toml"
 
@@ -52,16 +52,16 @@ class PlainTextDatabase(Database):
         )
         if not os.path.exists(self._accounts_path):
             os.makedirs(os.path.dirname(self._accounts_path), exist_ok=True)
-            accounts_df = pd.DataFrame(columns=ACCOUNT_DF_COLUMNS)
-            self._write_accounts_update(accounts_df)
+            with open(self._accounts_path, "w") as _:
+                pass
 
         self._transactions_path = PlainTextDatabase._setup_path(
             database_path, TRANSACTIONS, transactions_path
         )
         if not os.path.exists(self._transactions_path):
             os.makedirs(os.path.dirname(self._transactions_path), exist_ok=True)
-            transactions_df = pd.DataFrame(columns=TRANSACTIONS_DF_COLUMNS)
-            self._write_transactions_update(transactions_df)
+            with open(self._transactions_path, "w") as _:
+                pass
 
         self._cursors_path = PlainTextDatabase._setup_path(
             database_path, CURSORS, cursors_path
@@ -113,10 +113,37 @@ class PlainTextDatabase(Database):
         self._write_accounts_update(accounts_df)
 
     def _read_accounts(self) -> pd.DataFrame:
-        return pd.read_csv(self._accounts_path, index_col=0)
+        with open(self._accounts_path) as f:
+            accounts = []
+            end_of_file = False
+            while not end_of_file:
+                line = f.readline()
+                if line == "":
+                    end_of_file = True
+                if line.strip() != "":
+                    account_type = AccountType(line.split()[0].lower())
+                    line = " ".join(line.split()[1:])
+                    balance = float(line.split("$")[-1])
+                    account_name = "$".join(line.split("$")[:-1]).strip()
+                    accounts.append(
+                        Account(name=account_name, balance=balance, type=account_type)
+                    )
+        df = pd.DataFrame([_account_dict(t) for t in accounts])
+        if len(df) > 0:
+            df["index"] = df["name"]
+            df = df.set_index("index")
+            return df
+        else:
+            return pd.DataFrame(columns=ACCOUNT_DF_COLUMNS)
 
     def _write_accounts_update(self, accounts_df: pd.DataFrame):
-        accounts_df.to_csv(self._accounts_path)
+        def onm_account_entry(account: Account):
+            return f"{account.type.value.upper()} {account.name} ${account.balance}"
+
+        with open(self._accounts_path, "w") as f:
+            for _, account in accounts_df.iterrows():
+                f.write(onm_account_entry(_account_from(account)))
+                f.write("\n")
 
     def add_transactions(self, transactions: List[Transaction]):
         transactions_df = self._read_transactions()
@@ -138,10 +165,62 @@ class PlainTextDatabase(Database):
         return cursors.get(source.name, None)
 
     def _read_transactions(self) -> pd.DataFrame:
-        return pd.read_csv(self._transactions_path)
+        # TODO: more robust and efficient
+        with open(self._transactions_path) as f:
+            transactions = []
+            end_of_file = False
+            while not end_of_file:
+                line = f.readline()
+                if line == "":
+                    end_of_file = True
+                if line.strip() != "":
+                    date_str = line.split()[0]
+                    date = datetime.strptime(date_str, DATE_FMT)
+                    line = " ".join(line.split()[1:])
+                    amount = float(line.split("$")[-1])
+                    transaction_type = (
+                        TransactionType.DEBIT if amount < 0 else TransactionType.CREDIT
+                    )
+                    account_name = "$".join(line.split("$")[:-1]).strip()
+                    description = f.readline().strip()
+                    category = f.readline().strip()
+                    transactions.append(
+                        Transaction(
+                            date=date,
+                            description=description,
+                            amount=abs(amount),
+                            category=category,
+                            account_name=account_name,
+                            type=transaction_type,
+                        )
+                    )
+        df = pd.DataFrame([_transaction_dict(t) for t in transactions])
+        if len(df) > 0:
+            return df
+        else:
+            return pd.DataFrame(columns=TRANSACTIONS_DF_COLUMNS)
 
     def _write_transactions_update(self, transactions_df: pd.DataFrame):
-        transactions_df.to_csv(self._transactions_path, index=False)
+        def onm_transaction_entry(transaction):
+            date_str = transaction.date.strftime(DATE_FMT)
+            amount_str = (
+                -transaction.amount
+                if transaction.type == TransactionType.DEBIT
+                else transaction.amount
+            )
+            return "\n".join(
+                [
+                    f"{date_str} {transaction.account_name} ${amount_str}",
+                    f"    {transaction.description}",
+                    f"    {transaction.category}",
+                ]
+            )
+
+        df = transactions_df.sort_values("date", ascending=False)
+        with open(self._transactions_path, "w") as f:
+            for _, transaction in df.iterrows():
+                f.write(onm_transaction_entry(_transaction_from(transaction)))
+                f.write("\n\n")
 
     def _read_cursors(self) -> Dict[str, SyncCursor]:
         cursors_df = pd.read_csv(self._cursors_path, index_col=0)
