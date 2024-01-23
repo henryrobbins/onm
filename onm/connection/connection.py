@@ -5,10 +5,16 @@ from typing import List, NamedTuple, Optional
 from ..sync import SyncCursor
 
 
+class AccountType(Enum):
+    ASSET = "asset"
+    LIABILITY = "liability"
+
+
 class AccountBalance(NamedTuple):
     account_name: str
     account_id: str
     balance: float
+    type: AccountType
 
 
 class TransactionType(Enum):

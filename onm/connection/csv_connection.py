@@ -2,19 +2,27 @@ from abc import ABC
 from onm.connection.csv_reader import CsvReader, AmexCsvReader, AppleCsvReader
 from onm.sync import CsvSyncCursor
 from .connection import (
+    AccountType,
     Connection,
     AccountBalance,
-    TransactionType,
     Transaction,
     SyncTransactionsResponse,
+    TransactionType,
 )
 from typing import List, Optional
 
 
 class CsvConnection(Connection, ABC):
-    def __init__(self, csv_path: str, account_name: str, csv_reader: CsvReader):
+    def __init__(
+        self,
+        csv_path: str,
+        account_name: str,
+        account_type: AccountType,
+        csv_reader: CsvReader,
+    ):
         self._csv_path = csv_path
         self._account_name = account_name
+        self._account_type = account_type
         self._csv_reader = csv_reader
 
     def get_account_balances(self) -> List[AccountBalance]:
@@ -23,6 +31,7 @@ class CsvConnection(Connection, ABC):
                 account_name=self._account_name,
                 account_id=self._account_name,
                 balance=0,
+                type=self._account_type,
             )
         ]
 
@@ -46,7 +55,7 @@ class CsvConnection(Connection, ABC):
                     amount=row["amount"],
                     primary_category=row["primary_category"],
                     detailed_category=row["detailed_category"],
-                    account_id="apple",
+                    account_id=self._account_name,
                     type=TransactionType(row["type"]),
                 )
             )
@@ -60,10 +69,10 @@ class CsvConnection(Connection, ABC):
 
 
 class AmexCsvConnection(CsvConnection):
-    def __init__(self, csv_path: str):
-        super().__init__(csv_path, "amex", AmexCsvReader)
+    def __init__(self, csv_path: str, account_type: AccountType):
+        super().__init__(csv_path, "amex", account_type, AmexCsvReader)
 
 
 class AppleCsvConnection(CsvConnection):
-    def __init__(self, csv_path: str):
-        super().__init__(csv_path, "apple", AppleCsvReader)
+    def __init__(self, csv_path: str, account_type: AccountType):
+        super().__init__(csv_path, "apple", account_type, AppleCsvReader)

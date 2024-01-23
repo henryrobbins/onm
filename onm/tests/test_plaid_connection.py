@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from datetime import datetime
 from plaid import Environment
 from plaid.api.plaid_api import PlaidApi
+from plaid.model import account_type
 from plaid.model.account_base import AccountBase
 from plaid.model.account_balance import AccountBalance
 from plaid.model.transaction import Transaction
@@ -16,6 +17,7 @@ from plaid.model.item_public_token_exchange_response import (
 from plaid.model.accounts_get_response import AccountsGetResponse
 from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import (
+    AccountType,
     TransactionType,
     PlaidConnection,
     PlaidConfiguration,
@@ -115,6 +117,8 @@ def test_plaid_link_update_link(webserver_serve_mock):
 def plaid_api_mock():
     plaid_api = Mock(PlaidApi)
 
+    type = Mock(account_type.AccountType)
+    type.configure_mock(value="depository")
     balance = Mock(AccountBalance)
     balance.configure_mock(current=131.17)
     account = Mock(AccountBase)
@@ -123,6 +127,7 @@ def plaid_api_mock():
         name="onm",
         account_id="bc3eb2e652219571d5897b8422869388",
         balances=balance,
+        type=type,
     )
     accounts = [account]
     accounts_get_res = Mock(AccountsGetResponse)
@@ -175,6 +180,7 @@ def test_plaid_connection_get_account_balances(plaid_api_mock):
     assert "ONM Bank" == account.account_name
     assert "bc3eb2e652219571d5897b8422869388" == account.account_id
     assert 131.17 == account.balance
+    assert AccountType.ASSET == account.type
 
 
 def test_plaid_connection_get_new_transactions(plaid_api_mock):

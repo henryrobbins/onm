@@ -1,14 +1,23 @@
 from onm.config import Config
+from onm import common
 from onm.common import SourceType
+from onm.connection.connection import AccountType
 from onm.source.source_factory import SourceFactory
 from onm.connection.connection_factory import ConnectionFactory
 from onm.database.database_factory import DatabaseFactory
 
 
-def add_source(type: SourceType, name: str, config: Config) -> None:
+def add_source(
+    type: SourceType, name: str, config: Config, account_type: str = None
+) -> None:
     database_config = config.get_database_config()
     database = DatabaseFactory.create_database(database_config)
-    source = SourceFactory.create_source(type=type, name=name, config=config)
+    source = SourceFactory.create_source(
+        type=type,
+        name=name,
+        config=config,
+        account_type=common.AccountType(account_type) if account_type else None,
+    )
     database.add_source(source)
 
 
@@ -26,12 +35,16 @@ def sync_source(
     name: str,
     config: Config,
     csv_path: str = None,
+    account_type: str = None,
 ) -> None:
     database_config = config.get_database_config()
     database = DatabaseFactory.create_database(database_config)
     source = database.get_source(name)
     connection = ConnectionFactory.create_connection(
-        source.type, config, csv_path=csv_path
+        source.type,
+        config,
+        csv_path=csv_path,
+        account_type=AccountType(account_type) if account_type else None,
     )
     account_balances = source.get_account_balances(connection)
     sync_cursor = database.get_sync_cursor(source)

@@ -10,7 +10,7 @@ from onm.source.source import Source
 from onm.source.source_factory import SourceFactory
 from onm.sync import SyncCursor, create_sync_cursor, get_sync_cursor_type_from
 from .database import Database
-from onm.common import Account, TransactionType, Transaction
+from onm.common import Account, AccountType, TransactionType, Transaction
 from typing import Any, List, Dict, Optional
 
 ACCOUNTS = "accounts.csv"
@@ -18,7 +18,7 @@ TRANSACTIONS = "transactions.csv"
 CURSORS = "cursors.csv"
 SOURCES = "sources.toml"
 
-ACCOUNT_DF_COLUMNS = ["name", "balance"]
+ACCOUNT_DF_COLUMNS = ["name", "account_type", "balance"]
 TRANSACTIONS_DF_COLUMNS = [
     "date",
     "description",
@@ -89,7 +89,7 @@ class PlainTextDatabase(Database):
 
     def add_account(self, account: Account):
         accounts_df = self._read_accounts()
-        accounts_df.loc[account.name] = account._asdict()
+        accounts_df.loc[account.name] = _account_dict(account)
         self._write_accounts_update(accounts_df)
 
     def get_account(self, name: str) -> Account:
@@ -98,16 +98,16 @@ class PlainTextDatabase(Database):
             account = accounts_df.loc[name]
         except KeyError:
             raise ValueError(f"Account '{name}' is not in the database")
-        return Account(**account)
+        return _account_from(account)
 
     def get_accounts(self) -> List[Account]:
         accounts_df = self._read_accounts()
-        return [Account(**row) for _, row in accounts_df.iterrows()]
+        return [_account_from(row) for _, row in accounts_df.iterrows()]
 
     def update_account(self, account: Account):
         accounts_df = self._read_accounts()
         try:
-            accounts_df.loc[account.name] = account._asdict()
+            accounts_df.loc[account.name] = _account_dict(account)
         except KeyError:
             raise ValueError(f"Account '{account.name}' is not in the database")
         self._write_accounts_update(accounts_df)
@@ -221,6 +221,22 @@ def _from_toml(value: Any) -> Any:
         return value
     else:
         raise ValueError(f"Unsupported type: {type(value)}")
+
+
+def _account_dict(account: Account) -> Dict:
+    return {
+        "name": account.name,
+        "balance": account.balance,
+        "account_type": account.type.value,
+    }
+
+
+def _account_from(dict: Dict) -> Account:
+    return Account(
+        name=dict["name"],
+        balance=dict["balance"],
+        type=AccountType(dict["account_type"]),
+    )
 
 
 def _transaction_dict(transaction: Transaction) -> Dict:

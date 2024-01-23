@@ -3,6 +3,11 @@ from enum import Enum
 from typing import NamedTuple
 
 
+class AccountType(Enum):
+    ASSET = "asset"
+    LIABILITY = "liability"
+
+
 class SourceType(Enum):
     PLAID = "plaid"
     AMEX_CSV = "amex_csv"
@@ -12,6 +17,7 @@ class SourceType(Enum):
 class Account(NamedTuple):
     name: str
     balance: float
+    type: AccountType
 
 
 class TransactionType(Enum):

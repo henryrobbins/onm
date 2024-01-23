@@ -1,10 +1,11 @@
 from plaid import ApiClient, Configuration, Environment
-from plaid.model import transaction
+from plaid.model import transaction, account_type
 from plaid.api.plaid_api import PlaidApi
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from .connection import (
     Connection,
+    AccountType,
     AccountBalance,
     TransactionType,
     Transaction,
@@ -56,6 +57,7 @@ class PlaidConnection(Connection):
                     account_id=plaid_account.account_id,
                     # TODO: Use current for now but should do based on account type
                     balance=plaid_account.balances.current,
+                    type=_parse_plaid_account_type(plaid_account.type),
                 )
             )
         return accounts
@@ -79,6 +81,22 @@ class PlaidConnection(Connection):
         return SyncTransactionsResponse(
             transactions=transactions, sync_cursor=PlaidSyncCursor(cursor=next_cursor)
         )
+
+
+def _parse_plaid_account_type(type: account_type.AccountType) -> AccountType:
+    if type.value == "investment":
+        return AccountType.ASSET
+    if type.value == "credit":
+        return AccountType.LIABILITY
+    if type.value == "depository":
+        return AccountType.ASSET
+    if type.value == "loan":
+        return AccountType.LIABILITY
+    if type.value == "brokerage":
+        return AccountType.ASSET
+    if type.value == "other":
+        return AccountType.ASSET
+    raise ValueError(f"{type} is not a valid account type")
 
 
 def _parse_plaid_transaction(transaction: transaction.Transaction) -> Transaction:

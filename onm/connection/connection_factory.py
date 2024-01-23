@@ -1,6 +1,6 @@
 from ..common import SourceType
 from onm.config import Config
-from .connection import Connection
+from .connection import AccountType, Connection
 from .plaid_connection import PlaidConnection
 from onm.connection.csv_connection import AppleCsvConnection, AmexCsvConnection
 from onm.connection.plaid_connection import get_plaid_api
@@ -13,6 +13,7 @@ class ConnectionFactory:
         type: SourceType,
         config: Config,
         csv_path: Optional[str] = None,  # TODO: do I really want this here?
+        account_type: AccountType = None,  # TODO: do I really want this here?
     ) -> Connection:
         if type == SourceType.PLAID:
             plaid_config = config.get_plaid_config()
@@ -21,10 +22,14 @@ class ConnectionFactory:
         elif type == SourceType.AMEX_CSV:
             if csv_path is None:
                 raise ValueError("Must provide 'csv_path' for Amex CSV link")
-            return AmexCsvConnection(csv_path)
+            if account_type is None:
+                raise ValueError("Must provide 'account_type' for Amex CSV link")
+            return AmexCsvConnection(csv_path, account_type)
         elif type == SourceType.APPLE_CSV:
             if csv_path is None:
                 raise ValueError("Must provide 'csv_path' for Amex CSV link")
-            return AppleCsvConnection(csv_path)
+            if account_type is None:
+                raise ValueError("Must provide 'account_type' for Amex CSV link")
+            return AppleCsvConnection(csv_path, account_type)
         else:
             raise ValueError("Unknown type")

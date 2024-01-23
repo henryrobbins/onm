@@ -1,5 +1,5 @@
 from __future__ import annotations
-from onm.common import Account, Transaction, TransactionType, SourceType
+from onm.common import Account, Transaction, TransactionType, SourceType, AccountType
 from onm.link.link_factory import LinkFactory
 from ..connection import connection
 from onm.config import Config
@@ -11,11 +11,14 @@ from typing import List, Dict
 
 class PlaidSource(Source):
     def __init__(
-        self, name: str, access_token: str = None, account_id_map: Dict[str, str] = None
+        self,
+        name: str,
+        access_token: str = None,
+        account_map: Dict[str, Dict[str, str]] = None,
     ):
         super().__init__(name)
         self._access_token = access_token
-        self._account_id_map = account_id_map
+        self._account_map = account_map
 
     @property
     def type(self) -> str:
@@ -26,15 +29,20 @@ class PlaidSource(Source):
         return self._access_token
 
     @property
-    def account_id_map(self) -> str:
-        return self._account_id_map
+    def account_map(self) -> str:
+        return self._account_map
 
     def get_account_balances(self, connection: PlaidConnection) -> List[Account]:
         balances = connection.get_account_balances(self._access_token)
         accounts = []
         for b in balances:
+            account_dict = self.account_map[b.account_id]
             accounts.append(
-                Account(name=self._account_id_map[b.account_id], balance=b.balance)
+                Account(
+                    name=account_dict["name"],
+                    balance=b.balance,
+                    type=AccountType(b.type.value),
+                )
             )
         return accounts
 
@@ -54,7 +62,7 @@ class PlaidSource(Source):
             date=t.date,
             description=t.description,
             amount=t.amount,
-            account_name=self._account_id_map[t.account_id],
+            account_name=self.account_map[t.account_id]["name"],
             category=self._onm_category_from_plaid(
                 t.primary_category, t.detailed_category
             ),
@@ -74,7 +82,10 @@ class PlaidSource(Source):
             "type": SourceType.PLAID.value,
             "name": self.name,
             "access_token": self.access_token,
-            "accounts": [{"id": k, "name": v} for k, v in self.account_id_map.items()],
+            "accounts": [
+                {"id": k, "name": v["name"], "account_type": v["account_type"].value}
+                for k, v in self.account_map.items()
+            ],
         }
 
     @staticmethod
@@ -82,7 +93,13 @@ class PlaidSource(Source):
         return PlaidSource(
             name=data["name"],
             access_token=data["access_token"],
-            account_id_map={a["id"]: a["name"] for a in data["accounts"]},
+            account_map={
+                a["id"]: {
+                    "name": a["name"],
+                    "account_type": AccountType(a["account_type"]),
+                }
+                for a in data["accounts"]
+            },
         )
 
 
@@ -92,7 +109,13 @@ class PlaidSourceBuilder:
         name: str, access_token: str, plaid_connection: PlaidConnection
     ) -> PlaidSource:
         accounts = plaid_connection.get_account_balances(access_token)
-        account_id_map = {a.account_id: a.account_name for a in accounts}
+        account_map = {
+            a.account_id: {
+                "name": a.account_name,
+                "account_type": AccountType(a.type.value),
+            }
+            for a in accounts
+        }
 
         # TODO: custom naming logic (UserInputHandler)
         # account_names = {a.account_name: a for a in account_balances.keys()}
@@ -106,5 +129,5 @@ class PlaidSourceBuilder:
         #     selected_account_balances[account] = balance
 
         return PlaidSource(
-            name=name, access_token=access_token, account_id_map=account_id_map
+            name=name, access_token=access_token, account_map=account_map
         )

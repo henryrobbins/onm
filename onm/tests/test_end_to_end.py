@@ -11,6 +11,7 @@ from plaid.model.sandbox_public_token_create_request import (
     SandboxPublicTokenCreateRequest,
 )
 from onm import main
+from onm.connection.connection import AccountType
 from onm.database.database_factory import DatabaseFactory
 from onm.link.plaid_link import PlaidLink
 from onm.connection.plaid_connection import (
@@ -105,9 +106,13 @@ def test_plaid_end_to_end(config: Config):
 
 
 def test_amex_csv_end_to_end(config: Config):
-    main.add_source(type=SourceType.AMEX_CSV, name="amex", config=config)
+    main.add_source(
+        type=SourceType.AMEX_CSV, name="amex", config=config, account_type="asset"
+    )
     main.update_source("amex", config)
-    main.sync_source("amex", config, csv_path=AMEX_CSV_PATH)
+    main.sync_source(
+        "amex", config, csv_path=AMEX_CSV_PATH, account_type=AccountType.ASSET
+    )
 
     database_config = config.get_database_config()
     database = DatabaseFactory.create_database(database_config)
@@ -117,7 +122,9 @@ def test_amex_csv_end_to_end(config: Config):
     assert 1 == len(accounts)
 
     # Fetch again (assume nothing changed)
-    main.sync_source("amex", config, csv_path=AMEX_CSV_PATH)
+    main.sync_source(
+        "amex", config, csv_path=AMEX_CSV_PATH, account_type=AccountType.ASSET
+    )
     assert len(transactions) == len(database.get_transactions())
     assert len(accounts) == len(database.get_accounts())
 
@@ -125,9 +132,13 @@ def test_amex_csv_end_to_end(config: Config):
 
 
 def test_apple_csv_end_to_end(config: Config):
-    main.add_source(type=SourceType.APPLE_CSV, name="apple", config=config)
+    main.add_source(
+        type=SourceType.APPLE_CSV, name="apple", config=config, account_type="asset"
+    )
     main.update_source("apple", config)
-    main.sync_source("apple", config, csv_path=APPLE_CSV_PATH)
+    main.sync_source(
+        "apple", config, csv_path=APPLE_CSV_PATH, account_type=AccountType.ASSET
+    )
 
     database_config = config.get_database_config()
     database = DatabaseFactory.create_database(database_config)
@@ -137,7 +148,9 @@ def test_apple_csv_end_to_end(config: Config):
     assert 1 == len(accounts)
 
     # Fetch again (assume nothing changed)
-    main.sync_source("apple", config, csv_path=APPLE_CSV_PATH)
+    main.sync_source(
+        "apple", config, csv_path=APPLE_CSV_PATH, account_type=AccountType.ASSET
+    )
     assert len(transactions) == len(database.get_transactions())
     assert len(accounts) == len(database.get_accounts())
 

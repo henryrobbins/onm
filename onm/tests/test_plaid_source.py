@@ -4,7 +4,7 @@ from datetime import datetime
 from onm.connection.plaid_connection import PlaidConnection
 from onm.connection import connection
 from onm.connection.connection import AccountBalance, Transaction
-from onm.common import TransactionType
+from onm.common import AccountType, TransactionType
 from onm.source.plaid_source import PlaidSourceBuilder
 from onm.source.source import SyncTransactionsResponse
 from onm.sync import PlaidSyncCursor
@@ -22,6 +22,7 @@ def plaid_connection_mock():
         account_name="ONM CHECKING",
         account_id="e02fc823810d73a9127d00948ab000d4",
         balance=0.0,
+        type=connection.AccountType.ASSET,
     )
 
     def get_account_balances_side_effect(*args):
@@ -63,6 +64,7 @@ def test_plaid_source(plaid_connection_mock):
     assert 1 == len(account_balances)
     account = account_balances[0]
     assert 0.0 == account.balance
+    assert AccountType.ASSET == account.type
 
     sync_cursor = PlaidSyncCursor(cursor="c4498331dfe9edf14bf28e5ab6f51e58")
     res = plaid_source.sync_transactions(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC
-from onm.common import Account, Transaction, TransactionType
+from onm.common import Account, AccountType, Transaction, TransactionType
 from onm.category import (
     APPLE_ONM_CATEGORY_MAPPING,
     AMEX_ONM_CATEGORY_MAPPING,
@@ -14,15 +14,20 @@ from typing import Dict, List, Optional
 
 
 class CsvSource(Source, ABC):
-    def __init__(self, name: str, category_mapping: Dict[str, str]):
+    def __init__(
+        self, name: str, account_type: AccountType, category_mapping: Dict[str, str]
+    ):
         super().__init__(name)
+        self._account_type = account_type
         self._category_mapping = category_mapping
 
     def get_account_balances(self, connection: Connection) -> List[Account]:
         balances = connection.get_account_balances()
         accounts = []
         for b in balances:
-            accounts.append(Account(name=self._name, balance=b.balance))
+            accounts.append(
+                Account(name=self._name, balance=b.balance, type=self._account_type)
+            )
         return accounts
 
     def sync_transactions(
@@ -48,32 +53,44 @@ class CsvSource(Source, ABC):
 
 
 class AppleCsvSource(CsvSource):
-    def __init__(self, name: str):
-        super().__init__(name, APPLE_ONM_CATEGORY_MAPPING)
+    def __init__(self, name: str, account_type: AccountType):
+        super().__init__(name, account_type, APPLE_ONM_CATEGORY_MAPPING)
 
     @property
     def type(self) -> str:
         return SourceType.APPLE_CSV
 
     def serialize(self) -> Dict:
-        return {"type": SourceType.APPLE_CSV.value, "name": self.name}
+        return {
+            "type": SourceType.APPLE_CSV.value,
+            "name": self.name,
+            "account_type": self._account_type.value,
+        }
 
     @staticmethod
     def deserialize(data: Dict) -> AppleCsvSource:
-        return AppleCsvSource(name=data["name"])
+        return AppleCsvSource(
+            name=data["name"], account_type=AccountType(data["account_type"])
+        )
 
 
 class AmexCsvSource(CsvSource):
-    def __init__(self, name: str):
-        super().__init__(name, AMEX_ONM_CATEGORY_MAPPING)
+    def __init__(self, name: str, account_type: AccountType):
+        super().__init__(name, account_type, AMEX_ONM_CATEGORY_MAPPING)
 
     @property
     def type(self) -> str:
         return SourceType.AMEX_CSV
 
     def serialize(self) -> Dict:
-        return {"type": SourceType.AMEX_CSV.value, "name": self.name}
+        return {
+            "type": SourceType.AMEX_CSV.value,
+            "name": self.name,
+            "account_type": self._account_type.value,
+        }
 
     @staticmethod
     def deserialize(data: Dict) -> AmexCsvSource:
-        return AmexCsvSource(name=data["name"])
+        return AmexCsvSource(
+            name=data["name"], account_type=AccountType(data["account_type"])
+        )

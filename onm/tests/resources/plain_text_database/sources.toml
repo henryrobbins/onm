@@ -2,6 +2,6 @@
 type = "plaid"
 access_token = "access-sandbox-a4a6c36b-0276-431d-a843-65c30b506e77"
 accounts = [
-    {id = "6886e1c6916351f894255ef738176744", name = "checking"},
-    {id = "9217d6c969ac114533812fdacb15b11a", name = "savings"},
+    {id = "6886e1c6916351f894255ef738176744", name = "checking", account_type = "asset"},
+    {id = "9217d6c969ac114533812fdacb15b11a", name = "savings", account_type = "asset"},
 ]

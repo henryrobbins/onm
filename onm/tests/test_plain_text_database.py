@@ -2,7 +2,7 @@ import os
 import shutil
 import pytest
 from datetime import datetime
-from onm.common import Account, Transaction, TransactionType
+from onm.common import Account, AccountType, Transaction, TransactionType
 from onm.database.plain_text_database import PlainTextDatabase
 from onm.sync import PlaidSyncCursor
 from onm.source.plaid_source import PlaidSource
@@ -35,19 +35,22 @@ def new_database() -> PlainTextDatabase:
 
 
 def test_add_account(new_database: PlainTextDatabase):
-    new_database.add_account(Account("roth_ira", 100.95))
+    new_database.add_account(Account("roth_ira", 100.95, AccountType.ASSET))
     account = new_database.get_account("roth_ira")
     assert "roth_ira" == account.name
     assert 100.95 == account.balance
+    assert AccountType.ASSET == account.type
 
 
 def test_get_account(existing_database: PlainTextDatabase):
     checking = existing_database.get_account(ONM_CHECKING)
     assert ONM_CHECKING == checking.name
     assert 23.9 == checking.balance
+    assert AccountType.ASSET == checking.type
     savings = existing_database.get_account(ONM_SAVINGS)
     assert ONM_SAVINGS == savings.name
     assert 45.6 == savings.balance
+    assert AccountType.ASSET == savings.type
 
 
 def test_get_accounts(existing_database: PlainTextDatabase):
@@ -56,7 +59,9 @@ def test_get_accounts(existing_database: PlainTextDatabase):
 
 
 def test_update_account(existing_database: PlainTextDatabase):
-    existing_database.update_account(Account(ONM_CHECKING, 93.2))
+    existing_database.update_account(
+        Account(ONM_CHECKING, 93.2, type=AccountType.ASSET)
+    )
     account = existing_database.get_account(ONM_CHECKING)
     assert 93.2 == account.balance
 
@@ -116,18 +121,24 @@ def test_get_source(existing_database: PlainTextDatabase):
     source = existing_database.get_source("platypus_bank")
     assert PlaidSource == type(source)
     assert "access-sandbox-a4a6c36b-0276-431d-a843-65c30b506e77" == source.access_token
-    account_id_map = source.account_id_map
-    assert "checking" == account_id_map["6886e1c6916351f894255ef738176744"]
-    assert "savings" == account_id_map["9217d6c969ac114533812fdacb15b11a"]
+    account_map = source.account_map
+    assert "checking" == account_map["6886e1c6916351f894255ef738176744"]["name"]
+    assert "savings" == account_map["9217d6c969ac114533812fdacb15b11a"]["name"]
 
 
 def test_sources_add_plaid_source(new_database: PlainTextDatabase):
     source = PlaidSource(
         name="onm_bank",
         access_token="access-sandbox-a4a6c36b-0276-431d-a843-65c30b506e77",
-        account_id_map={
-            "a927faed81ca48916e56e6ccda63fe09": "checking",
-            "76b069b74b582f62f4890a88b14402a6": "savings",
+        account_map={
+            "a927faed81ca48916e56e6ccda63fe09": {
+                "name": "checking",
+                "account_type": AccountType.ASSET,
+            },
+            "76b069b74b582f62f4890a88b14402a6": {
+                "name": "savings",
+                "account_type": AccountType.ASSET,
+            },
         },
     )
     new_database.add_source(source)
@@ -135,6 +146,6 @@ def test_sources_add_plaid_source(new_database: PlainTextDatabase):
     source = new_database.get_source("onm_bank")
     assert PlaidSource == type(source)
     assert "access-sandbox-a4a6c36b-0276-431d-a843-65c30b506e77" == source.access_token
-    account_id_map = source.account_id_map
-    assert "checking" == account_id_map["a927faed81ca48916e56e6ccda63fe09"]
-    assert "savings" == account_id_map["76b069b74b582f62f4890a88b14402a6"]
+    account_map = source.account_map
+    assert "checking" == account_map["a927faed81ca48916e56e6ccda63fe09"]["name"]
+    assert "savings" == account_map["76b069b74b582f62f4890a88b14402a6"]["name"]
